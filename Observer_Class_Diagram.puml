@@ -1,0 +1,135 @@
+@startuml Observer Pattern Class Diagram
+
+' Style settings
+skinparam classAttributeIconSize 0
+skinparam classFontSize 12
+skinparam classFontName Arial
+skinparam backgroundColor white
+skinparam roundcorner 5
+
+' Base interfaces
+interface Subject {
+    + attach(observer: Observer): void
+    + detach(observer: Observer): void
+    + notify(eventType: string, data: array): void
+}
+
+interface Observer {
+    + update(eventType: string, data: array): void
+}
+
+' Notification system specific interfaces
+interface NotificationSubject {
+    + attach(observer: NotificationObserver): void
+    + detach(observer: NotificationObserver): void
+    + notify(event: string, data: array): void
+}
+
+interface NotificationObserver {
+    + update(event: string, data: array): void
+}
+
+' Concrete implementation classes
+class NotificationManager {
+    - observers: NotificationObserver[]
+    - instance: NotificationManager
+    --
+    + getInstance(): NotificationManager
+    + attach(observer: NotificationObserver): void
+    + detach(observer: NotificationObserver): void
+    + notify(event: string, data: array): void
+    + getObserverCount(): int
+}
+
+class EmailNotificationObserver {
+    - pdo: PDO
+    - SMTP_HOST: string
+    - SMTP_USER: string
+    - SMTP_PASS: string
+    - SMTP_PORT: int
+    --
+    + __construct()
+    + update(event: string, data: array): void
+    - sendProductNotification(data: array): void
+    - sendBranchNotification(data: array): void
+    - getAllUsers(): array
+    - sendEmail(toEmail: string, toName: string, subject: string, htmlBody: string): bool
+    - getProductEmailTemplate(data: array, userName: string): string
+    - getBranchEmailTemplate(data: array, userName: string): string
+    - getMenuUrl(): string
+    - getLocationsUrl(): string
+    - logEmailSent(email: string, subject: string): void
+}
+
+class NotificationBootstrap {
+    + {static} initialize(): void
+    + {static} getNotificationManager(): NotificationManager
+}
+
+' Relationship definitions
+' Base interface inheritance relationships
+Subject <|.. NotificationSubject : extends
+Observer <|.. NotificationObserver : extends
+
+' Concrete implementation relationships
+NotificationSubject <|.. NotificationManager : implements
+NotificationObserver <|.. EmailNotificationObserver : implements
+
+' Aggregation relationship - Subject manages Observers
+NotificationManager ||--o{ NotificationObserver : manages
+
+' Dependency relationships
+NotificationBootstrap ..> NotificationManager : uses
+NotificationBootstrap ..> EmailNotificationObserver : creates
+
+' Add explanatory notes
+note right of Subject
+  <<interface>>
+  Base Subject interface
+  Defines core observer pattern methods
+end note
+
+note right of Observer
+  <<interface>>
+  Base Observer interface
+  Defines observer update method
+end note
+
+note right of NotificationManager
+  <<Singleton>>
+  Concrete Subject implementation
+  Manages all observers
+  Singleton pattern ensures global unique instance
+end note
+
+note right of EmailNotificationObserver
+  <<Concrete Observer>>
+  Concrete observer implementation
+  Sends email notifications
+  Uses PHPMailer library
+end note
+
+note right of NotificationBootstrap
+  <<Bootstrap>>
+  System initialization class
+  Responsible for setting up observers
+  Called at application startup
+end note
+
+' Add pseudo-code explanations
+note bottom of NotificationManager
+  notify() method pseudo-code:
+  for each observer in observers:
+    observer.update(event, data)
+end note
+
+note bottom of EmailNotificationObserver
+  update() method pseudo-code:
+  switch(event):
+    case 'product_created':
+      sendProductNotification(data)
+    case 'branch_created':
+      sendBranchNotification(data)
+end note
+
+@enduml 

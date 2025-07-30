@@ -1,0 +1,106 @@
+<?php
+// controllers/ProfileController.php - THE FINAL, COMPLETE VERSION
+
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/session.php';
+require_once __DIR__ . '/../models/Reload.php';
+require_once __DIR__ . '/../includes/db.php';
+
+class ProfileController
+{
+    /**
+     * The constructor is empty and does not cause any errors.
+     */
+    public function __construct()
+    {
+    }
+
+    /**
+     * Method 1: Displays the main profile page.
+     * THIS IS THE METHOD THAT WAS MISSING.
+     */
+    public function displayPage()
+    {
+        // Include our "factory" file to get access to the $authManager.
+        require_once __DIR__ . '/../controllers/auth.php';
+
+        if (!Session::isLoggedIn()) {
+            header('Location: ' . BASE_URL . '/views/login_logout_modules/login.php');
+            exit();
+        }
+
+        $user_id = Session::get('user_id');
+        $user = $authManager->findUserById($user_id);
+
+        if (!$user) {
+            logout(); // The logout function is available from auth.php
+            exit();
+        }
+
+        $reloadModel = new Reload();
+        $reloads = $reloadModel->getReloadsByUser($user_id);
+        
+        $conn = Database::getInstance();
+        $sql = "SELECT * FROM orders WHERE user_id = ? ORDER BY id DESC";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([$user_id]);
+        $order_history = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $errors = Session::get('profile_errors', []); Session::unset('profile_errors');
+        $success = Session::get('profile_success'); Session::unset('profile_success');
+
+        require_once __DIR__ . '/../views/profile.php';
+    }
+
+    /**
+     * Method 2: Displays the change password form.
+     */
+    public function displayChangePasswordPage()
+    {
+        require_once __DIR__ . '/../controllers/auth.php';
+
+        if (!Session::isLoggedIn()) {
+            header('Location: ' . BASE_URL . '/views/login_logout_modules/login.php');
+            exit();
+        }
+        
+        $errors = Session::get('profile_errors', []); Session::unset('profile_errors');
+        $success = Session::get('profile_success'); Session::unset('profile_success');
+        
+        $page_title = 'Change Password';
+        require_once __DIR__ . '/../views/change_password.php';
+    }
+
+    /**
+     * Method 3: Handles the password change form submission.
+     */
+    public function handlePasswordChange()
+    {
+        // Include our "factory" file to get access to the $authManager.
+        require_once __DIR__ . '/../controllers/auth.php';
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !Session::isLoggedIn() || !Session::verifyCsrfToken($_POST['_csrf'] ?? '')) {
+            logout();
+            exit();
+        }
+        
+        $user_id = Session::get('user_id');
+
+        $changeErrors = $authManager->changePassword(
+            $user_id,
+            $_POST['current_password'] ?? '',
+            $_POST['new_password'] ?? '',
+            $_POST['confirm_new_password'] ?? ''
+        );
+
+        if (empty($changeErrors)) {
+            Session::set('profile_success', 'Your password was changed successfully.');
+        } else {
+            Session::set('profile_errors', $changeErrors);
+        }
+
+        // Redirect back to the change password page to show the result.
+        header('Location: ' . BASE_URL . '/change_password.php');
+        exit();
+    }
+}
