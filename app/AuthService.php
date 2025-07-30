@@ -187,7 +187,8 @@ class AuthService
             $mail->addAddress($userEmail, $userName);
             $mail->isHTML(true);
             $mail->Subject = 'Mixue System - Password Reset Request';
-            $resetLink = "http://" . $_SERVER['HTTP_HOST'] . "/views/login_logout_modules/reset_password.php?token=" . urlencode($token);
+            $baseUrl = defined('BASE_URL') ? BASE_URL : '/Assignment';
+            $resetLink = "http://" . $_SERVER['HTTP_HOST'] . $baseUrl . "/views/login_logout_modules/reset_password.php?token=" . urlencode($token);
             $mail->Body    = "<div style='font-family: sans-serif; line-height: 1.6;'><h2>Password Reset Request</h2><p>Hello " . htmlspecialchars($userName) . ",</p><p>We received a request to reset the password for your account. Please click the button below to choose a new password. This link will expire in 15 minutes.</p><p style='text-align: center;'><a href='" . $resetLink . "' style='display: inline-block; padding: 12px 24px; font-size: 16px; color: white; background-color: #007bff; text-decoration: none; border-radius: 5px;'>Reset Your Password</a></p><p>If you did not request a password reset, you can safely ignore this email. Your account is secure.</p><p>Thank you,<br>The Mixue System Team</p></div>";
             $mail->AltBody = "Hello " . htmlspecialchars($userName) . ",\n\nPlease use the following link to reset your password. This link is valid for 15 minutes.\n\n" . $resetLink . "\n\nIf you did not request this, please ignore this email.";
             $mail->send();

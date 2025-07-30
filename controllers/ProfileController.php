@@ -22,7 +22,10 @@ class ProfileController
     public function displayPage()
     {
         // Include our "factory" file to get access to the $authManager.
-        require_once __DIR__ . '/../controllers/auth.php';
+        require_once __DIR__ . '/auth.php';
+
+        // Access the global $authManager variable
+        global $authManager;
 
         if (!Session::isLoggedIn()) {
             header('Location: ' . BASE_URL . '/views/login_logout_modules/login.php');
@@ -57,7 +60,7 @@ class ProfileController
      */
     public function displayChangePasswordPage()
     {
-        require_once __DIR__ . '/../controllers/auth.php';
+        require_once __DIR__ . '/auth.php';
 
         if (!Session::isLoggedIn()) {
             header('Location: ' . BASE_URL . '/views/login_logout_modules/login.php');
@@ -77,7 +80,10 @@ class ProfileController
     public function handlePasswordChange()
     {
         // Include our "factory" file to get access to the $authManager.
-        require_once __DIR__ . '/../controllers/auth.php';
+        require_once __DIR__ . '/auth.php';
+
+        // Access the global $authManager variable
+        global $authManager;
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !Session::isLoggedIn() || !Session::verifyCsrfToken($_POST['_csrf'] ?? '')) {
             logout();

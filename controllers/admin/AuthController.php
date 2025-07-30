@@ -6,9 +6,10 @@ class AuthController {
         // --- CHANGE 1: Include the new service factory file ---
         // This file creates the $authManager object for us to use.
         // The path should be relative to this AuthController.php file.
-        require_once __DIR__ . '/../controllers/auth.php';
-        
-        // --- CHANGE 2: The old line "$auth = new Auth();" is DELETED ---
+        require_once __DIR__ . '/../auth.php';
+
+        // --- CHANGE 2: Access the global $authManager variable ---
+        global $authManager;
 
         // CHANGE 3: Use the new $authManager object instead of the old $auth object.
         $user = $authManager->findUserById(Session::get('user_id'));

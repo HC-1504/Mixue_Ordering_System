@@ -1,7 +1,19 @@
 <?php
 define('BASE_URL', '/Assignment');
 $page_title = $page_title ?? 'Mixue Admin Panel';
-$currentUser = (new Auth())->findUserById(Session::get('user_id'));
+
+// Include the auth controller to get access to $authManager
+// Use a static variable to ensure we only include it once
+static $authIncluded = false;
+if (!$authIncluded) {
+    require_once __DIR__ . '/../../controllers/auth.php';
+    $authIncluded = true;
+}
+
+// Access the global $authManager variable
+global $authManager;
+
+$currentUser = $authManager->findUserById(Session::get('user_id'));
 ?>
 <!DOCTYPE html>
 <html lang="en">

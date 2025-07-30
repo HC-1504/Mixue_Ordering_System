@@ -42,7 +42,10 @@ class UserController
     public function changeRole()
     {
         // --- CHANGE 3: Include our "factory" file here to get $authManager ---
-        require_once __DIR__ . '/../../controllers/auth.php';
+        require_once __DIR__ . '/../auth.php';
+
+        // Access the global $authManager variable
+        global $authManager;
 
         // All the permission and validation checks are still perfectly fine.
         if (Session::get('user_role') !== 'manager') {

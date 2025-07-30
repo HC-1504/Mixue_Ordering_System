@@ -6,6 +6,9 @@ $body_class = 'login-page'; // <-- DEFINE THE CLASS HERE, BEFORE THE HEADER
 // Use the main website header
 require_once '../../includes/header.php'; // <-- NOW THE HEADER CAN USE THE VARIABLE
 
+// Include the auth controller to get access to $authManager
+require_once '../../controllers/auth.php';
+
 // If user is already logged in, they shouldn't be here.
 if (Session::isLoggedIn()) {
     header('Location: ' . BASE_URL . '/profile.php');
@@ -24,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($email)) {
             $error = 'Please enter a valid email address.';
         } else {
-            $auth->requestPasswordReset($email);
+            $authManager->requestPasswordReset($email);
             $message = 'If an account with that email exists, a password reset link has been sent. Please check your inbox.';
         }
     }

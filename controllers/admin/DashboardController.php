@@ -3,6 +3,7 @@ require_once __DIR__ . '/../../models/Product.php';
 require_once __DIR__ . '/../../models/Category.php';
 require_once __DIR__ . '/../../models/Branch.php';
 require_once __DIR__ . '/../../models/Order.php';
+require_once __DIR__ . '/../../controllers/auth.php';
 
 class DashboardController {
     public function index() {

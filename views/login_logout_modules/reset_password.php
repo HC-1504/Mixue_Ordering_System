@@ -6,6 +6,9 @@ $body_class = 'login-page';
 // Use the main website header
 require_once '../../includes/header.php';
 
+// Include the auth controller to get access to $authManager
+require_once '../../controllers/auth.php';
+
 $token = filter_input(INPUT_GET, 'token', FILTER_SANITIZE_STRING);
 if (!$token) {
     // A simple way to handle a critical error
@@ -20,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Session::verifyCsrfToken($_POST['_csrf'] ?? '')) {
         $errors[] = 'Invalid security token. Please try again.';
     } else {
-        $errors = $auth->completePasswordReset(
+        $errors = $authManager->completePasswordReset(
             $_POST['token'] ?? '',
             $_POST['password'] ?? '',
             $_POST['confirm_password'] ?? ''

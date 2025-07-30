@@ -1,11 +1,21 @@
 <?php
+// 1. Include the header first for HTML structure
 require_once '../includes/header.php';
+
+// 2. NOW, include the controller that creates your service objects
+require_once '../controllers/auth.php'; // <-- THIS IS THE MISSING LINE
+
+// 3. Check if the user is logged in
 if (!Session::isLoggedIn()) {
     header('Location: ' . BASE_URL . '/views/login_logout_modules/login.php');
     exit();
 }
-$user = $auth->findUserById(Session::get('user_id'));
-$success = $error = '';
+
+
+$user = $authManager->findUserById(Session::get('user_id'));
+
+$success = '';
+$error = '';
 
 // Soft check for reloads table
 try {
@@ -30,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt2->execute([$user->id, $amount]);
                 $success = 'Money reloaded successfully!';
                 // Refresh user data
-                $user = $auth->findUserById($user->id);
+                $user = $authManager->findUserById($user->id);
             } else {
                 $error = 'Failed to reload money. Please try again.';
             }

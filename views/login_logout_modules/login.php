@@ -70,11 +70,14 @@ require_once '../../includes/header.php';
             </p>
             <p>
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" required placeholder="••••••••" autocomplete="current-password">
-                <span onclick="togglePassword('password', this)" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); cursor:pointer;">
-                    <i class="fa fa-eye-slash" aria-hidden="true"></i>
-                </span>
+                <div style="position:relative;">
+                    <input type="password" id="password" name="password" required placeholder="••••••••" autocomplete="current-password">
+                    <span onclick="togglePassword('password', this)" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); cursor:pointer;">
+                        <i class="fa fa-eye-slash" aria-hidden="true"></i>
+                    </span>
+                    </div>
             </p>
+
             
             <button type="submit" class="login-button">Sign In</button>
         </form>

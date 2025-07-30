@@ -11,7 +11,7 @@ require_once __DIR__ . '/../includes/header.php';
             <h3 class="card-title text-center mb-4"><i class="fas fa-key"></i> Change Password</h3>
             
             <!-- These variables ($success, $errors) are now provided by the controller -->
-            <?php if ($success): ?>
+            <?php if (isset($success) && $success): ?>
                 <div class="alert alert-success text-center"> <?= htmlspecialchars($success) ?> </div>
             <?php elseif (!empty($errors)): ?>
                 <div class="alert alert-danger text-center">

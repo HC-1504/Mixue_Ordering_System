@@ -226,7 +226,8 @@ class EmailNotificationObserver implements NotificationObserver
     private function getMenuUrl(): string
     {
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-        return "http://" . $host . "/Assignment/routes/menu.php";
+        $baseUrl = defined('BASE_URL') ? BASE_URL : '/Assignment';
+        return "http://" . $host . $baseUrl . "/routes/menu.php";
     }
     
     /**
@@ -235,7 +236,8 @@ class EmailNotificationObserver implements NotificationObserver
     private function getLocationsUrl(): string
     {
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-        return "http://" . $host . "/Assignment/views/locations.php";
+        $baseUrl = defined('BASE_URL') ? BASE_URL : '/Assignment';
+        return "http://" . $host . $baseUrl . "/views/locations.php";
     }
     
     /**

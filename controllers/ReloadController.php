@@ -6,19 +6,19 @@ require_once __DIR__ . '/../controllers/auth.php';
 
 class ReloadController {
     private $reloadModel;
-    private $auth;
     private $pdo;
     public function __construct() {
         $this->reloadModel = new Reload();
-        $this->auth = new Auth();
         $this->pdo = Database::getInstance();
     }
     public function reloadPage() {
+        global $authManager; // Access the global $authManager from auth.php
+
         if (!Session::isLoggedIn()) {
             header('Location: ' . BASE_URL . '/views/login_logout_modules/login.php');
             exit();
         }
-        $user = $this->auth->findUserById(Session::get('user_id'));
+        $user = $authManager->findUserById(Session::get('user_id'));
         $success = $error = '';
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (Session::verifyCsrfToken($_POST['_csrf'] ?? '')) {
@@ -30,7 +30,7 @@ class ReloadController {
                     if ($stmt->execute([$amount, $user->id])) {
                         $this->reloadModel->addReload($user->id, $amount);
                         $success = 'Money reloaded successfully!';
-                        $user = $this->auth->findUserById($user->id);
+                        $user = $authManager->findUserById($user->id);
                     } else {
                         $error = 'Failed to reload money. Please try again.';
                     }
