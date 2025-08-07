@@ -1,6 +1,6 @@
 <?php
 // C:\xampp\htdocs\Assignment\profile.php
-
+//111111
 // 1. SETUP THE ENVIRONMENT: Include the service factory first.
 // This creates the $loginService and $authManager variables in the global scope.
 require_once __DIR__ . '/controllers/auth.php'; 
