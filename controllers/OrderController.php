@@ -4,6 +4,9 @@ require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../app/Strategies/DeliveryStrategy.php';
 require_once __DIR__ . '/../app/Strategies/Delivery/GrabDelivery.php';
 require_once __DIR__ . '/../app/Strategies/Delivery/SelfPickup.php';
+require_once __DIR__ . '/../app/SecurityLogger.php';
+
+use App\SecurityLogger;
 
 if (!defined('BASE_URL')) {
     define('BASE_URL', '/Assignment');
@@ -11,6 +14,13 @@ if (!defined('BASE_URL')) {
 
 class OrderController
 {
+    private SecurityLogger $logger;
+
+    public function __construct()
+    {
+        $this->logger = new SecurityLogger(Database::getInstance());
+    }
+
     // Accept $type as a parameter instead of reading $_GET inside
     public function confirm(string $type = 'pickup')
     {
@@ -67,6 +77,16 @@ class OrderController
                 'branch_id' => $branch_id,
                 'delivery_fee' => $deliveryFee,
                 'total'     => $total,
+            ]);
+
+            // Log order confirmation
+            $this->logger->logEvent('INFO', 'ORDER_CONFIRM', [
+                'user_id' => $user_id,
+                'order_type' => $type,
+                'amount' => $total,
+                'branch_id' => $branch_id,
+                'delivery_fee' => $deliveryFee,
+                'items_count' => count($cart)
             ]);
 
             // Redirect to payment page
