@@ -4,7 +4,7 @@
 namespace App\Auth;
 
 use PDO;
-
+//lllllll
 class DatabaseAuthenticator implements AuthenticatorInterface 
 {
     private PDO $pdo;
