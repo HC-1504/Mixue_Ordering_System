@@ -1,13 +1,18 @@
 <?php
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/LoggerTrait.php';
 
 class Order
 {
+    use LoggerTrait;
+
     protected $conn;
+    protected $pdo; // Required for LoggerTrait
 
     public function __construct()
     {
         $this->conn = Database::getInstance();
+        $this->pdo = $this->conn; // LoggerTrait expects $pdo property
     }
 
     /**
@@ -41,6 +46,15 @@ class Order
     public function savePendingOrder($data)
     {
         $_SESSION['pending_order'] = $data;
+
+        // Log order confirmation
+        $this->logEvent('INFO', 'ORDER_CONFIRM', [
+            'user_id' => $data['user_id'],
+            'order_type' => $data['type'],
+            'amount' => $data['total'],
+            'branch_id' => $data['branch_id'] ?? null,
+            'delivery_fee' => $data['delivery_fee'] ?? 0
+        ]);
     }
 
     /**
@@ -97,9 +111,31 @@ class Order
         }
 
         if ($stmt->execute()) {
-            return $this->conn->lastInsertId();
+            $orderId = $this->conn->lastInsertId();
+
+            // Log successful order creation
+            $this->logEvent('INFO', 'ORDER_CREATE_SUCCESS', [
+                'user_id' => $data['user_id'],
+                'order_id' => $orderId,
+                'amount' => $data['total'],
+                'order_type' => $data['type'],
+                'branch_id' => $data['branch_id'] ?? null,
+                'delivery_fee' => $data['delivery_fee'] ?? 0,
+                'status' => $data['status']
+            ]);
+
+            return $orderId;
         } else {
             $errorInfo = $stmt->errorInfo();
+
+            // Log failed order creation
+            $this->logEvent('CRITICAL', 'ORDER_CREATE_FAIL', [
+                'user_id' => $data['user_id'],
+                'error_message' => $errorInfo[2],
+                'amount' => $data['total'],
+                'order_type' => $data['type']
+            ]);
+
             throw new Exception("Order insert failed: " . $errorInfo[2]);
         }
     }
@@ -114,15 +150,25 @@ class Order
             VALUES (?, ?, ?, ?, ?)
         ");
 
+        $itemsAdded = 0;
         foreach ($cart as $item) {
-            $stmt->execute([
+            if ($stmt->execute([
                 intval($orderId),
                 intval($item['id']),
                 intval($item['quantity']),
                 $item['temperature'] ?? null,
                 $item['sugar'] ?? null,
-            ]);
+            ])) {
+                $itemsAdded++;
+            }
         }
+
+        // Log order details addition
+        $this->logEvent('INFO', 'ORDER_DETAILS_ADDED', [
+            'order_id' => $orderId,
+            'items_count' => count($cart),
+            'items_added' => $itemsAdded
+        ]);
     }
 
     public function find($id)
@@ -151,7 +197,8 @@ class Order
      */
     public function getRecentOrders($limit = 5)
     {
-        $stmt = $this->conn->prepare("
+        $stmt = $this->conn->prepare(
+            "
             SELECT o.*, u.name as user_name, b.name as branch_name
             FROM orders o
             LEFT JOIN users u ON o.user_id = u.id
