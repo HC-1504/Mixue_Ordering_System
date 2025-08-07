@@ -13,6 +13,13 @@ class AccountLockoutDecorator implements AuthenticatorInterface
     private PDO $pdo;
     private SecurityLogger $logger;
 
+    public function __call($name, $arguments)
+    {
+        // This line forwards the call to the next object in the chain
+        // (which is likely your DatabaseAuthenticator)
+        return $this->authenticator->$name(...$arguments);
+    }
+
     public function __construct(AuthenticatorInterface $authenticator, PDO $pdo, SecurityLogger $logger)
     {
         $this->authenticator = $authenticator;

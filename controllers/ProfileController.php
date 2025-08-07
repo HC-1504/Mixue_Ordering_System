@@ -21,11 +21,10 @@ class ProfileController
      */
     public function displayPage()
     {
-        // Include our "factory" file to get access to the $authManager.
-        require_once __DIR__ . '/auth.php';
+        // DO NOT require_once 'auth.php' here anymore. It's done in profile.php.
 
-        // Access the global $authManager variable
-        global $authManager;
+        // Access the global $loginService variable (and $authManager if needed elsewhere)
+        global $loginService, $authManager; // Note we are using $loginService
 
         if (!Session::isLoggedIn()) {
             header('Location: ' . BASE_URL . '/views/login_logout_modules/login.php');
@@ -33,13 +32,17 @@ class ProfileController
         }
 
         $user_id = Session::get('user_id');
-        $user = $authManager->findUserById($user_id);
+        
+        // --- THIS IS THE KEY FIX ---
+        // Use the correct object: $loginService, not $authManager
+        $user = $loginService->findUserById($user_id);
 
         if (!$user) {
-            logout(); // The logout function is available from auth.php
+            logout(); // The global logout() function from auth.php will work
             exit();
         }
 
+        // The rest of your code remains the same
         $reloadModel = new Reload();
         $reloads = $reloadModel->getReloadsByUser($user_id);
         

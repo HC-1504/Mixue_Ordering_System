@@ -1,5 +1,5 @@
 <?php
-// /app/Auth/SessionLoginDecorator.php
+// /app/Auth/SessionLoginDecorator.php - CORRECTED
 
 namespace App\Auth;
 
@@ -22,16 +22,12 @@ class SessionLoginDecorator implements AuthenticatorInterface
 
         if ($isSuccess) {
             $user = $this->getLoggedInUser();
-            // Start the session if it's not already started
             if (session_status() === PHP_SESSION_NONE) {
                 session_start();
             }
             session_regenerate_id(true);
             $_SESSION['user_id'] = $user->id;
             $_SESSION['user_role'] = $user->role;
-
-            // --- THE FIX IS HERE ---
-            // Changed from ->log() to ->logEvent() to match the SecurityLogger class
             $this->logger->logEvent('INFO', 'LOGIN_SUCCESS', ['user_id' => $user->id, 'role' => $user->role]);
         }
         
@@ -41,5 +37,20 @@ class SessionLoginDecorator implements AuthenticatorInterface
     public function getLoggedInUser(): ?object
     {
         return $this->authenticator->getLoggedInUser();
+    }
+
+    /**
+     * --- THIS IS THE FIX ---
+     * This magic method catches calls to methods that don't exist in this class
+     * (like findUserById) and forwards them to the wrapped authenticator object.
+     * This makes the decorator "transparent" for all other methods.
+     *
+     * @param string $name The name of the method being called.
+     * @param array $arguments The arguments passed to the method.
+     * @return mixed
+     */
+    public function __call($name, $arguments)
+    {
+        return $this->authenticator->$name(...$arguments);
     }
 }

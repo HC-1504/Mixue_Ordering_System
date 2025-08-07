@@ -1,14 +1,16 @@
 <?php
 // C:\xampp\htdocs\Assignment\profile.php
 
-// Start the session at the very top.
-session_start();
+// 1. SETUP THE ENVIRONMENT: Include the service factory first.
+// This creates the $loginService and $authManager variables in the global scope.
+require_once __DIR__ . '/controllers/auth.php'; 
 
-// Include the controller class definition.
+// 2. INCLUDE THE CONTROLLER CLASS
 require_once __DIR__ . '/controllers/ProfileController.php';
 
-// Create an instance of the controller.
-$controller = new ProfileController();
+// 3. START THE SESSION (can be done in auth.php or here)
+Session::start();
 
-// Tell the controller to handle displaying the profile page.
-$controller->displayPage();
+// 4. CREATE THE CONTROLLER AND CALL THE METHOD
+$controller = new ProfileController();
+$controller->displayPage(); // This will now work
