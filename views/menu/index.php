@@ -271,6 +271,7 @@ if (isset($_GET['added'])): ?>
                     <div class="modal-body">
                         <!-- Hidden field for product ID -->
                         <input type="hidden" name="id" id="modal-product-id">
+                        <input type="hidden" name="_csrf" value="<?= Session::generateCsrfToken() ?>">
 
                         <div class="mb-3">
                             <label class="form-label">Product</label>

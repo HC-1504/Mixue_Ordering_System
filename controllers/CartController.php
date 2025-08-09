@@ -48,6 +48,12 @@ class CartController
     {
         Session::start();
 
+        if (!isset($_POST['_csrf']) || !Session::verifyCsrfToken($_POST['_csrf'])) {
+            // CSRF token is invalid, handle the error
+            // For example, show an error message or redirect
+            die('CSRF token validation failed.');
+        }
+
         $id = $_POST['id'] ?? 0;
         $quantity = $_POST['quantity'] ?? 1;
         $temperature = $_POST['temperature'] ?? '';

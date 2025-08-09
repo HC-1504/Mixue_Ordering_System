@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../includes/header.php';
     <h1 class="mb-4 text-center">🧾 Confirm Your Order</h1>
 
     <form method="POST" class="card p-4 shadow-sm">
+        <input type="hidden" name="_csrf" value="<?= Session::generateCsrfToken() ?>">
         <div class="mb-3">
             <label for="phone" class="form-label">Phone Number</label>
             <input type="text" name="phone" id="phone" class="form-control" required>

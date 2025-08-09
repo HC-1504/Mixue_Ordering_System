@@ -59,6 +59,10 @@ class OrderController
 
         // Step 3: Handle form submission
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!isset($_POST['_csrf']) || !Session::verifyCsrfToken($_POST['_csrf'])) {
+                die('CSRF token validation failed.');
+            }
+
             $user_id = $_SESSION['user_id'] ?? null;
             $phone = trim($_POST['phone'] ?? '');
             $address = $type === 'delivery' ? trim($_POST['address'] ?? '') : '';
