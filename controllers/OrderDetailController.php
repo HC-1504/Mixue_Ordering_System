@@ -7,12 +7,33 @@ class OrderDetailController
 {
     public function show($id)
     {
-        Session::start(); // Start the session to access user ID
+        ob_start();
+        $this->getOrderDetailsApi($id);
+        $jsonResponse = ob_get_clean();
+        $data = json_decode($jsonResponse, true);
 
-        // 1. Check if user is logged in. If not, they can't own any orders.
+        if (isset($data['error'])) {
+            if (http_response_code() === 404) {
+                require __DIR__ . '/../views/order/not_found.php';
+            } else {
+                die($data['error']);
+            }
+            return;
+        }
+
+        $order = $data['order'];
+        $details = $data['details'];
+        require __DIR__ . '/../views/order/order_details.php';
+    }
+
+    public function getOrderDetailsApi($id)
+    {
+        Session::start();
+
         if (!isset($_SESSION['user_id'])) {
-            // Or redirect to login page
-            die('Access Denied: You must be logged in to view orders.');
+            http_response_code(403);
+            echo json_encode(['error' => 'Access Denied: You must be logged in to view orders.']);
+            return;
         }
 
         $orderModel = new Order();
@@ -20,17 +41,20 @@ class OrderDetailController
 
         $order = $orderModel->find($id);
 
-        // 2. CRITICAL IDOR CHECK:
-        // Verify the order exists AND that the 'user_id' of the order
-        // matches the user ID stored in the session.
         if (!$order || $order['user_id'] != $_SESSION['user_id']) {
-            // Use a generic not found page to avoid leaking information
-            // that the order exists but belongs to someone else.
-            require __DIR__ . '/../views/order/not_found.php';
+            http_response_code(404);
+            echo json_encode(['error' => 'Order not found.']);
             return;
         }
 
         $details = $detailModel->getOrderDetailsByOrderId($id);
-        require __DIR__ . '/../views/order/order_details.php';
+
+        $response = [
+            'order' => $order,
+            'details' => $details
+        ];
+
+        http_response_code(200);
+        echo json_encode($response);
     }
 }

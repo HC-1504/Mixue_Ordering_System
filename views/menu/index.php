@@ -72,17 +72,17 @@ if (isset($_GET['added'])): ?>
                 <?php foreach ($products as $row): ?>
                     <div class="col-md-4 mb-4">
                         <div class="card shadow-sm">
-                            <img src="../admin/uploads/<?= htmlspecialchars($row->image ?? 'default.jpg') ?>" class="card-img-top" alt="<?= htmlspecialchars($row->name) ?>" style="height: 200px; object-fit: contain;">
+                            <img src="../admin/uploads/<?= htmlspecialchars($row['image'] ?? 'default.jpg') ?>" class="card-img-top" alt="<?= htmlspecialchars($row['name']) ?>" style="height: 200px; object-fit: contain;">
                             <div class="card-body">
-                                <h5 class="card-title"><?= htmlspecialchars($row->name) ?></h5>
-                                <p class="card-text">RM <?= number_format($row->price, 2) ?></p>
-                                <small class="text-muted">Category: <?= htmlspecialchars($row->category_name ?? 'General') ?></small><br><br>
+                                <h5 class="card-title"><?= htmlspecialchars($row['name']) ?></h5>
+                                <p class="card-text">RM <?= number_format($row['price'], 2) ?></p>
+                                <small class="text-muted">Category: <?= htmlspecialchars($row['category_name'] ?? 'General') ?></small><br><br>
                                 <button
                                     class="btn btn-primary add-to-cart-btn"
-                                    data-id="<?php echo $row->id; ?>"
-                                    data-name="<?php echo htmlspecialchars($row->name, ENT_QUOTES); ?>"
-                                    data-price="<?php echo number_format($row->price, 2); ?>"
-                                    data-category="<?php echo htmlspecialchars($row->category_name ?? '', ENT_QUOTES); ?>">Add to Cart</button>
+                                    data-id="<?php echo $row['id']; ?>"
+                                    data-name="<?php echo htmlspecialchars($row['name'], ENT_QUOTES); ?>"
+                                    data-price="<?php echo number_format($row['price'], 2); ?>"
+                                    data-category="<?php echo htmlspecialchars($row['category_name'] ?? '', ENT_QUOTES); ?>">Add to Cart</button>
                             </div>
                         </div>
                     </div>
@@ -94,20 +94,20 @@ if (isset($_GET['added'])): ?>
         <div class="tab-pane fade" id="ice-cream" role="tabpanel" aria-labelledby="ice-cream-tab">
             <div class="row">
                 <?php foreach ($products as $row): ?>
-                    <?php if (stripos($row->category_name ?? '', 'ice cream') !== false): ?>
+                    <?php if (stripos($row['category_name'] ?? '', 'ice cream') !== false): ?>
                         <div class="col-md-4 mb-4">
                             <div class="card shadow-sm">
-                                <img src="../admin/uploads/<?= htmlspecialchars($row->image ?? 'default.jpg') ?>" class="card-img-top" alt="<?= htmlspecialchars($row->name) ?>" style="height: 200px; object-fit: contain;">
+                                <img src="../admin/uploads/<?= htmlspecialchars($row['image'] ?? 'default.jpg') ?>" class="card-img-top" alt="<?= htmlspecialchars($row['name']) ?>" style="height: 200px; object-fit: contain;">
                                 <div class="card-body">
-                                    <h5 class="card-title"><?= htmlspecialchars($row->name) ?></h5>
-                                    <p class="card-text">RM <?= number_format($row->price, 2) ?></p>
-                                    <small class="text-muted">Category: <?= htmlspecialchars($row->category_name ?? 'Ice Cream') ?></small><br><br>
+                                    <h5 class="card-title"><?= htmlspecialchars($row['name']) ?></h5>
+                                    <p class="card-text">RM <?= number_format($row['price'], 2) ?></p>
+                                    <small class="text-muted">Category: <?= htmlspecialchars($row['category_name'] ?? 'Ice Cream') ?></small><br><br>
                                     <button
                                         class="btn btn-primary add-to-cart-btn"
-                                        data-id="<?php echo $row->id; ?>"
-                                        data-name="<?php echo htmlspecialchars($row->name, ENT_QUOTES); ?>"
-                                        data-price="<?php echo number_format($row->price, 2); ?>"
-                                        data-category="<?php echo htmlspecialchars($row->category_name ?? '', ENT_QUOTES); ?>">Add to Cart</button>
+                                        data-id="<?php echo $row['id']; ?>"
+                                        data-name="<?php echo htmlspecialchars($row['name'], ENT_QUOTES); ?>"
+                                        data-price="<?php echo number_format($row['price'], 2); ?>"
+                                        data-category="<?php echo htmlspecialchars($row['category_name'] ?? '', ENT_QUOTES); ?>">Add to Cart</button>
                                 </div>
                             </div>
                         </div>
@@ -120,19 +120,19 @@ if (isset($_GET['added'])): ?>
         <div class="tab-pane fade" id="milk-tea" role="tabpanel" aria-labelledby="milk-tea-tab">
             <div class="row">
                 <?php foreach ($products as $row): ?>
-                    <?php if (stripos($row->category_name ?? '', 'milk tea') !== false): ?>
+                    <?php if (stripos($row['category_name'] ?? '', 'milk tea') !== false): ?>
                         <div class="col-md-4 mb-4">
                             <div class="card shadow-sm">
-                                <img src="../admin/uploads/<?= htmlspecialchars($row->image ?? 'default.jpg') ?>" class="card-img-top" alt="<?= htmlspecialchars($row->name) ?>" style="height: 200px; object-fit: contain;">
+                                <img src="../admin/uploads/<?= htmlspecialchars($row['image'] ?? 'default.jpg') ?>" class="card-img-top" alt="<?= htmlspecialchars($row['name']) ?>" style="height: 200px; object-fit: contain;">
                                 <div class="card-body">
-                                    <h5 class="card-title"><?= htmlspecialchars($row->name) ?></h5>
-                                    <p class="card-text">RM <?= number_format($row->price, 2) ?></p>
-                                    <small class="text-muted">Category: <?= htmlspecialchars($row->category_name ?? 'Milk Tea') ?></small><br><br>
+                                    <h5 class="card-title"><?= htmlspecialchars($row['name']) ?></h5>
+                                    <p class="card-text">RM <?= number_format($row['price'], 2) ?></p>
+                                    <small class="text-muted">Category: <?= htmlspecialchars($row['category_name'] ?? 'Milk Tea') ?></small><br><br>
                                     <button
                                         class="btn btn-primary add-to-cart-btn"
-                                        data-id="<?php echo $row->id; ?>"
-                                        data-name="<?php echo htmlspecialchars($row->name, ENT_QUOTES); ?>"
-                                        data-price="<?php echo number_format($row->price, 2); ?>">Add to Cart</button>
+                                        data-id="<?php echo $row['id']; ?>"
+                                        data-name="<?php echo htmlspecialchars($row['name'], ENT_QUOTES); ?>"
+                                        data-price="<?php echo number_format($row['price'], 2); ?>">Add to Cart</button>
                                 </div>
                             </div>
                         </div>
@@ -145,19 +145,19 @@ if (isset($_GET['added'])): ?>
         <div class="tab-pane fade" id="fresh-tea" role="tabpanel" aria-labelledby="fresh-tea-tab">
             <div class="row">
                 <?php foreach ($products as $row): ?>
-                    <?php if (stripos($row->category_name ?? '', 'fruit drink') !== false): ?>
+                    <?php if (stripos($row['category_name'] ?? '', 'fruit drink') !== false): ?>
                         <div class="col-md-4 mb-4">
                             <div class="card shadow-sm">
-                                <img src="../admin/uploads/<?= htmlspecialchars($row->image ?? 'default.jpg') ?>" class="card-img-top" alt="<?= htmlspecialchars($row->name) ?>" style="height: 200px; object-fit: contain;">
+                                <img src="../admin/uploads/<?= htmlspecialchars($row['image'] ?? 'default.jpg') ?>" class="card-img-top" alt="<?= htmlspecialchars($row['name']) ?>" style="height: 200px; object-fit: contain;">
                                 <div class="card-body">
-                                    <h5 class="card-title"><?= htmlspecialchars($row->name) ?></h5>
-                                    <p class="card-text">RM <?= number_format($row->price, 2) ?></p>
-                                    <small class="text-muted">Category: <?= htmlspecialchars($row->category_name ?? 'Fresh Tea') ?></small><br><br>
+                                    <h5 class="card-title"><?= htmlspecialchars($row['name']) ?></h5>
+                                    <p class="card-text">RM <?= number_format($row['price'], 2) ?></p>
+                                    <small class="text-muted">Category: <?= htmlspecialchars($row['category_name'] ?? 'Fresh Tea') ?></small><br><br>
                                     <button
                                         class="btn btn-primary add-to-cart-btn"
-                                        data-id="<?php echo $row->id; ?>"
-                                        data-name="<?php echo htmlspecialchars($row->name, ENT_QUOTES); ?>"
-                                        data-price="<?php echo number_format($row->price, 2); ?>">Add to Cart</button>
+                                        data-id="<?php echo $row['id']; ?>"
+                                        data-name="<?php echo htmlspecialchars($row['name'], ENT_QUOTES); ?>"
+                                        data-price="<?php echo number_format($row['price'], 2); ?>">Add to Cart</button>
                                 </div>
                             </div>
                         </div>
@@ -170,19 +170,19 @@ if (isset($_GET['added'])): ?>
         <div class="tab-pane fade" id="coffee" role="tabpanel" aria-labelledby="coffee-tab">
             <div class="row">
                 <?php foreach ($products as $row): ?>
-                    <?php if (stripos($row->category_name ?? '', 'coffee') !== false): ?>
+                    <?php if (stripos($row['category_name'] ?? '', 'coffee') !== false): ?>
                         <div class="col-md-4 mb-4">
                             <div class="card shadow-sm">
-                                <img src="../admin/uploads/<?= htmlspecialchars($row->image ?? 'default.jpg') ?>" class="card-img-top" alt="<?= htmlspecialchars($row->name) ?>" style="height: 200px; object-fit: contain;">
+                                <img src="../admin/uploads/<?= htmlspecialchars($row['image'] ?? 'default.jpg') ?>" class="card-img-top" alt="<?= htmlspecialchars($row['name']) ?>" style="height: 200px; object-fit: contain;">
                                 <div class="card-body">
-                                    <h5 class="card-title"><?= htmlspecialchars($row->name) ?></h5>
-                                    <p class="card-text">RM <?= number_format($row->price, 2) ?></p>
-                                    <small class="text-muted">Category: <?= htmlspecialchars($row->category_name ?? 'Coffee') ?></small><br><br>
+                                    <h5 class="card-title"><?= htmlspecialchars($row['name']) ?></h5>
+                                    <p class="card-text">RM <?= number_format($row['price'], 2) ?></p>
+                                    <small class="text-muted">Category: <?= htmlspecialchars($row['category_name'] ?? 'Coffee') ?></small><br><br>
                                     <button
                                         class="btn btn-primary add-to-cart-btn"
-                                        data-id="<?php echo $row->id; ?>"
-                                        data-name="<?php echo htmlspecialchars($row->name, ENT_QUOTES); ?>"
-                                        data-price="<?php echo number_format($row->price, 2); ?>">Add to Cart</button>
+                                        data-id="<?php echo $row['id']; ?>"
+                                        data-name="<?php echo htmlspecialchars($row['name'], ENT_QUOTES); ?>"
+                                        data-price="<?php echo number_format($row['price'], 2); ?>">Add to Cart</button>
                                 </div>
                             </div>
                         </div>

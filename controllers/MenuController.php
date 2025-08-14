@@ -16,11 +16,10 @@ class MenuController
         }
 
         try {
-            // Initialize product model
-            $productModel = new Product();
-
-            // Get all available products with their categories
-            $products = $productModel->getAvailableWithCategory();
+            // Get all available products with their categories from the API
+            $api_url = 'http://' . $_SERVER['HTTP_HOST'] . '/Assignment/api/menu.php';
+            $json_data = file_get_contents($api_url);
+            $products = json_decode($json_data, true);
 
             // Check if user is logged in
             $is_logged_in = isset($_SESSION['user_id']);
