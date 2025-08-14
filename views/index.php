@@ -80,6 +80,14 @@ The <main> tag is now opened in the header, so we just add our content.
     </div>
 </div>
 
+<script type="module">
+    import Chatbot from "https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js"
+    Chatbot.init({
+        chatflowid: "25030210-a04e-4ffd-8fce-e388a1f6edb9",
+        apiHost: "https://cloud.flowiseai.com",
+    })
+</script>
+
 <?php
 // Include the standard website footer
 require_once '../includes/footer.php';
