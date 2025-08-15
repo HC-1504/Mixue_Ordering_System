@@ -1,10 +1,15 @@
 <?php
 // Security: A single, site-wide component for session management.
 class Session {
+
+    //secure cookie configurations
     public static function start() {
         if (session_status() === PHP_SESSION_NONE) {
             session_set_cookie_params([
-                'lifetime' => 1800, 'httponly' => true, 'samesite' => 'Lax', 'secure' => isset($_SERVER['HTTPS'])
+                'lifetime' => 1800, 
+                'httponly' => true, 
+                'samesite' => 'Lax', 
+                'secure' => isset($_SERVER['HTTPS'])
             ]);
             session_start();
         }
@@ -14,6 +19,8 @@ class Session {
     public static function get($key, $default = null) { return $_SESSION[$key] ?? $default; }
     public static function unset($key) { unset($_SESSION[$key]); }
 
+
+    //session validation and management
     public static function destroy() {
         $_SESSION = [];
         if (ini_get("session.use_cookies")) {
@@ -23,7 +30,10 @@ class Session {
         session_destroy();
     }
 
-    public static function regenerate() { session_regenerate_id(true); }
+    public static function regenerate() { 
+        session_regenerate_id(true); 
+    }
+
     public static function isLoggedIn(): bool { return isset($_SESSION['user_id']); }
 
     public static function generateCsrfToken(): string {

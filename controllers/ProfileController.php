@@ -135,6 +135,13 @@ class ProfileController
     
     // 4. Setup variables
     $user = $authManager->findUserById(Session::get('user_id'));
+    
+    // Ensure user object exists, otherwise redirect to login
+    if (!$user) {
+        header('Location: ' . BASE_URL . '/views/login_logout_modules/login.php');
+        exit();
+    }
+    
     $success = '';
     $errors = [];
 

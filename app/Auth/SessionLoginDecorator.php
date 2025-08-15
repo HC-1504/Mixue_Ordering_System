@@ -16,6 +16,7 @@ class SessionLoginDecorator implements AuthenticatorInterface
         $this->logger = $logger;
     }
 
+    //session regeneration
     public function login(string $email, string $password): bool
     {
         $isSuccess = $this->authenticator->login($email, $password);
