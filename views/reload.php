@@ -1,14 +1,18 @@
 <?php
-// 1. Include the controller that creates your service objects
+// 1. Include necessary dependencies first
+require_once '../includes/config.php';
+require_once '../includes/session.php';
+
+// 2. Include the controller that creates your service objects
 require_once '../controllers/auth.php'; // <-- THIS IS THE MISSING LINE
 
-// 2. Check if the user is logged in
+// 3. Check if the user is logged in
 if (!Session::isLoggedIn()) {
     header('Location: ' . BASE_URL . '/views/login_logout_modules/login.php');
     exit();
 }
 
-// 3. Include the header AFTER all potential redirects
+// 4. Include the header AFTER all potential redirects
 require_once '../includes/header.php';
 
 $user = $authManager->findUserById(Session::get('user_id'));

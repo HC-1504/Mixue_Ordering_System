@@ -3,6 +3,10 @@
 $page_title = 'Forgot Password - Mixue System';
 $body_class = 'login-page'; // <-- DEFINE THE CLASS HERE, BEFORE THE HEADER
 
+// Include necessary dependencies first
+require_once '../../includes/config.php';
+require_once '../../includes/session.php';
+
 // Include the auth controller to get access to $authManager
 require_once '../../controllers/auth.php';
 
