@@ -3,9 +3,6 @@
 $page_title = 'Forgot Password - Mixue System';
 $body_class = 'login-page'; // <-- DEFINE THE CLASS HERE, BEFORE THE HEADER
 
-// Use the main website header
-require_once '../../includes/header.php'; // <-- NOW THE HEADER CAN USE THE VARIABLE
-
 // Include the auth controller to get access to $authManager
 require_once '../../controllers/auth.php';
 
@@ -14,6 +11,9 @@ if (Session::isLoggedIn()) {
     header('Location: ' . BASE_URL . '/profile.php');
     exit();
 }
+
+// Include header AFTER all potential redirects
+require_once '../../includes/header.php'; // <-- NOW THE HEADER CAN USE THE VARIABLE
 
 $message = null;
 $error = null;

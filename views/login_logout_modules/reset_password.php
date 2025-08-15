@@ -3,15 +3,14 @@
 $page_title = 'Reset Password - Mixue System';
 $body_class = 'login-page';
 
-// Use the main website header
-require_once '../../includes/header.php';
-
 // Include the auth controller to get access to $authManager
 require_once '../../controllers/auth.php';
 
 $token = filter_input(INPUT_GET, 'token', FILTER_SANITIZE_STRING);
 if (!$token) {
     // A simple way to handle a critical error
+    $page_title = 'Error - Reset Password';
+    require_once '../../includes/header.php';
     echo "<div class='login-container error'>Error: No password reset token provided.</div>";
     require_once '../../includes/footer.php';
     exit();
@@ -36,6 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+// Include header AFTER all potential redirects
+require_once '../../includes/header.php';
 ?>
 
 <!-- The HTML content is wrapped for proper layout -->
