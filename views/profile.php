@@ -39,9 +39,7 @@ require_once __DIR__ . '/../includes/header.php';
                 RM <?= number_format($user->balance ?? 0, 2) ?>
             </div>
             <div class="d-flex justify-content-center gap-2 mb-2">
-                <a href="<?= BASE_URL ?>/views/reload.php" class="btn btn-success btn-lg"><i class="fas fa-wallet"></i> Reload Money</a>
-                <!-- The "Change Password" link can now be a modal trigger if you wish, or link to a separate page -->
-                <!-- For now, we assume a form for it exists on a separate page or a modal -->
+                <a href="<?= BASE_URL ?>/reload.php" class="btn btn-success btn-lg"><i class="fas fa-wallet"></i> Reload Money</a>
                 <a href="<?= BASE_URL ?>/views/change_password.php" class="btn btn-primary btn-lg"><i class="fas fa-key"></i> Change Password</a>
             </div>
         </div>
@@ -58,6 +56,7 @@ require_once __DIR__ . '/../includes/header.php';
                         <tr>
                             <th>Date</th>
                             <th>Amount (RM)</th>
+                            <th>Payment Method</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -65,6 +64,7 @@ require_once __DIR__ . '/../includes/header.php';
                             <tr>
                                 <td><?= htmlspecialchars($r->created_at) ?></td>
                                 <td style="color:#28a745; font-weight:600;">+<?= number_format($r->amount, 2) ?></td>
+                                <td><?= htmlspecialchars($r->payment_type ?? 'N/A') ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
