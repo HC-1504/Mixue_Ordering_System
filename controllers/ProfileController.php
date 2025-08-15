@@ -40,8 +40,8 @@ class ProfileController
         $user_id = Session::get('user_id');
         
         // --- THIS IS THE KEY FIX ---
-        // Use the correct object: $loginService, not $authManager
-        $user = $loginService->findUserById($user_id);
+        // Use the correct object: $authManager, not $loginService
+        $user = $authManager->findUserById($user_id);
 
         if (!$user) {
             // Use the global logout function from auth.php
@@ -121,59 +121,62 @@ class ProfileController
     }
 
     public function handleReloadPage() {
-        // 1. Security Check: User must be logged in
-        if (!Session::isLoggedIn()) {
-            header('Location: ' . BASE_URL . '/views/login_logout_modules/login.php');
-            exit();
-        }
-
-        // 2. Include auth.php to get access to the services
-        require_once __DIR__ . '/auth.php';
-        
-        // 3. Access the global $authManager variable
-        global $authManager;
-        
-        // 4. Setup variables
-        $user = $authManager->findUserById(Session::get('user_id'));
-        $success = '';
-        $errors = [];
-
-        // 5. Process the form if it was submitted
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (Session::verifyCsrfToken($_POST['_csrf'] ?? '')) {
-                $amount = floatval($_POST['amount'] ?? 0);
-                $payment_type = $_POST['payment_type'] ?? '';
-                
-                if ($amount <= 0) {
-                    $errors[] = 'Please enter a valid positive amount.';
-                } 
-                if (empty($payment_type)) {
-                    $errors[] = 'Please select a payment type.';
-                }
-
-                if (empty($errors)) {
-                    // Update balance in DB
-                    $conn = Database::getInstance();
-                    $stmt = $conn->prepare('UPDATE users SET balance = balance + ? WHERE id = ?');
-                    if ($stmt->execute([$amount, $user->id])) {
-                        // Record the reload transaction
-                        $stmt2 = $conn->prepare('INSERT INTO reloads (user_id, amount, payment_type, created_at) VALUES (?, ?, ?, NOW())');
-                        $stmt2->execute([$user->id, $amount, $payment_type]);
-                        
-                        $success = 'Money reloaded successfully!';
-                        // Refresh user data to show the new balance immediately
-                        $user = $authManager->findUserById($user->id); 
-                    } else {
-                        $errors[] = 'Failed to reload money. Please try again.';
-                    }
-                }
-            } else {
-                $errors[] = 'Invalid security token. Please try again.';
-            }
-        }
-
-        // 6. Load the view and pass the prepared data to it
-        require_once __DIR__ . '/../views/reload.php';
+    // 1. Security Check: User must be logged in
+    if (!Session::isLoggedIn()) {
+        header('Location: ' . BASE_URL . '/views/login_logout_modules/login.php');
+        exit();
     }
 
+    // 2. Include auth.php to get access to the services
+    require_once __DIR__ . '/auth.php';
+    
+    // 3. Access the global $authManager variable
+    global $authManager;
+    
+    // 4. Setup variables
+    $user = $authManager->findUserById(Session::get('user_id'));
+    $success = '';
+    $errors = [];
+
+    // 5. Process the form if it was submitted
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (Session::verifyCsrfToken($_POST['_csrf'] ?? '')) {
+            $amount = floatval($_POST['amount'] ?? 0);
+            $payment_type = $_POST['payment_type'] ?? '';
+            
+            if ($amount <= 0) {
+                $errors[] = 'Please enter a valid positive amount.';
+            } 
+            if (empty($payment_type)) {
+                $errors[] = 'Please select a payment type.';
+            }
+
+            if (empty($errors)) {
+                // Update balance in DB
+                $conn = Database::getInstance();
+                $stmt = $conn->prepare('UPDATE users SET balance = balance + ? WHERE id = ?');
+                if ($stmt->execute([$amount, $user->id])) {
+                    // Record the reload transaction
+                    $stmt2 = $conn->prepare('INSERT INTO reloads (user_id, amount, payment_type, created_at) VALUES (?, ?, ?, NOW())');
+                    $stmt2->execute([$user->id, $amount, $payment_type]);
+                    
+                    $success = 'Money reloaded successfully!';
+                    // Refresh user data to show the new balance immediately
+                    $user = $authManager->findUserById($user->id); 
+                } else {
+                    $errors[] = 'Failed to reload money. Please try again.';
+                }
+            }
+        } else {
+            $errors[] = 'Invalid security token. Please try again.';
+        }
+    }
+
+    // 6. Set page title and body class for the view
+    $page_title = 'Reload Money - Mixue System';
+    $body_class = 'reload-page';
+
+    // 7. Load the view and pass the prepared data to it
+    require_once __DIR__ . '/../views/reload.php';
+}
 }

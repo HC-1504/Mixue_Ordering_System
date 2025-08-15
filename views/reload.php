@@ -2,6 +2,8 @@
 // views/reload.php - THE NEW, CLEAN "VIEW" VERSION
 
 // The header is included here, but all logic is handled by the controller before this file is loaded.
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
