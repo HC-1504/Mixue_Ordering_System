@@ -1,187 +1,366 @@
 <?php
-require_once __DIR__ . '/../../includes/db.php';
+require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/session.php';
+require_once __DIR__ . '/../../models/Order.php';
+require_once __DIR__ . '/../../models/Product.php';
+require_once __DIR__ . '/../../models/Category.php';
 
 class ReportController {
-    private PDO $pdo;
+    private $orderModel;
+    private $productModel;
+    private $categoryModel;
+    private $apiBaseUrl;
     
     public function __construct() {
-        $this->pdo = Database::getInstance();
+        $this->orderModel = new Order();
+        $this->productModel = new Product();
+        $this->categoryModel = new Category();
+        $this->apiBaseUrl = 'http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/Assignment/api/admin';
     }
     
     public function index() {
-        // 只有manager可以查看报告
-        if (Session::get('user_role') !== 'manager') {
-            Session::set('report_errors', ['You do not have permission to access sales reports.']);
-            header('Location: ../admin/dashboard.php');
+        // Check admin permissions
+        if (!in_array(Session::get('user_role'), ['admin', 'manager'])) {
+            Session::set('report_errors', ['You do not have permission to access reports.']);
+            header('Location: dashboard.php');
             exit();
         }
         
-        $dateRange = $_GET['range'] ?? 'today';
-        $branchId = $_GET['branch'] ?? 'all';
-        
-        $salesData = $this->getSalesData($dateRange, $branchId);
-        $topProducts = $this->getTopProducts($dateRange, $branchId);
-        $salesByStatus = $this->getSalesByStatus($dateRange, $branchId);
-        $salesByBranch = $this->getSalesByBranch($dateRange);
-        $salesByType = $this->getSalesByType($dateRange, $branchId);
-        $branches = $this->getAllBranches();
-        
-        $page_title = 'Sales Reports';
+        $page_title = 'Reports Dashboard';
         require_once __DIR__ . '/../../views/admin/reports/index.php';
     }
     
-    private function getSalesData($dateRange, $branchId) {
-        $dateCondition = $this->getDateCondition($dateRange);
-        $branchCondition = $branchId !== 'all' ? "AND o.branch_id = :branch_id" : "";
-        
-        $sql = "
-            SELECT 
-                COUNT(*) as total_orders,
-                SUM(CASE WHEN status = 'Completed' THEN total ELSE 0 END) as total_revenue,
-                SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) as completed_orders,
-                SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) as cancelled_orders,
-                AVG(CASE WHEN status = 'Completed' THEN total ELSE NULL END) as avg_order_value
-            FROM orders o 
-            WHERE {$dateCondition} {$branchCondition}
-        ";
-        
-        $stmt = $this->pdo->prepare($sql);
-        if ($branchId !== 'all') {
-            $stmt->bindParam(':branch_id', $branchId);
-        }
-        $this->bindDateParams($stmt, $dateRange);
-        $stmt->execute();
-        
-        return $stmt->fetch();
-    }
-    
-    private function getTopProducts($dateRange, $branchId, $limit = 10) {
-        $dateCondition = $this->getDateCondition($dateRange, 'o');
-        $branchCondition = $branchId !== 'all' ? "AND o.branch_id = :branch_id" : "";
-        
-        $sql = "
-            SELECT 
-                p.name as product_name,
-                SUM(od.quantity) as total_quantity,
-                SUM(od.quantity * p.price) as total_revenue,
-                COUNT(DISTINCT o.id) as order_count
-            FROM order_details od
-            JOIN products p ON od.product_id = p.id
-            JOIN orders o ON od.order_id = o.id
-            WHERE o.status = 'Completed' AND {$dateCondition} {$branchCondition}
-            GROUP BY p.id, p.name
-            ORDER BY total_quantity DESC
-            LIMIT {$limit}
-        ";
-        
-        $stmt = $this->pdo->prepare($sql);
-        if ($branchId !== 'all') {
-            $stmt->bindParam(':branch_id', $branchId);
-        }
-        $this->bindDateParams($stmt, $dateRange);
-        $stmt->execute();
-        
-        return $stmt->fetchAll();
-    }
-    
-    private function getSalesByStatus($dateRange, $branchId) {
-        $dateCondition = $this->getDateCondition($dateRange);
-        $branchCondition = $branchId !== 'all' ? "AND o.branch_id = :branch_id" : "";
-        
-        $sql = "
-            SELECT 
-                status,
-                COUNT(*) as count,
-                SUM(total) as revenue
-            FROM orders o
-            WHERE {$dateCondition} {$branchCondition}
-            GROUP BY status
-            ORDER BY count DESC
-        ";
-        
-        $stmt = $this->pdo->prepare($sql);
-        if ($branchId !== 'all') {
-            $stmt->bindParam(':branch_id', $branchId);
-        }
-        $this->bindDateParams($stmt, $dateRange);
-        $stmt->execute();
-        
-        return $stmt->fetchAll();
-    }
-    
-    private function getSalesByBranch($dateRange) {
-        $dateCondition = $this->getDateCondition($dateRange, 'o');
-        
-        $sql = "
-            SELECT 
-                b.name as branch_name,
-                COUNT(o.id) as total_orders,
-                SUM(CASE WHEN o.status = 'Completed' THEN o.total ELSE 0 END) as revenue,
-                SUM(CASE WHEN o.status = 'Completed' THEN 1 ELSE 0 END) as completed_orders
-            FROM branches b
-            LEFT JOIN orders o ON b.id = o.branch_id AND {$dateCondition}
-            GROUP BY b.id, b.name
-            ORDER BY revenue DESC
-        ";
-        
-        $stmt = $this->pdo->prepare($sql);
-        $this->bindDateParams($stmt, $dateRange);
-        $stmt->execute();
-        
-        return $stmt->fetchAll();
-    }
-    
-    private function getSalesByType($dateRange, $branchId) {
-        $dateCondition = $this->getDateCondition($dateRange);
-        $branchCondition = $branchId !== 'all' ? "AND o.branch_id = :branch_id" : "";
-        
-        $sql = "
-            SELECT 
-                type,
-                COUNT(*) as count,
-                SUM(CASE WHEN status = 'Completed' THEN total ELSE 0 END) as revenue
-            FROM orders o
-            WHERE {$dateCondition} {$branchCondition}
-            GROUP BY type
-            ORDER BY revenue DESC
-        ";
-        
-        $stmt = $this->pdo->prepare($sql);
-        if ($branchId !== 'all') {
-            $stmt->bindParam(':branch_id', $branchId);
-        }
-        $this->bindDateParams($stmt, $dateRange);
-        $stmt->execute();
-        
-        return $stmt->fetchAll();
-    }
-    
-    private function getAllBranches() {
-        $stmt = $this->pdo->prepare("SELECT id, name FROM branches ORDER BY name");
-        $stmt->execute();
-        return $stmt->fetchAll();
-    }
-    
-    private function getDateCondition($dateRange, $tableAlias = 'o') {
-        switch ($dateRange) {
-            case 'today':
-                return "DATE({$tableAlias}.created_at) = CURDATE()";
-            case 'yesterday':
-                return "DATE({$tableAlias}.created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)";
-            case 'week':
-                return "{$tableAlias}.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
-            case 'month':
-                return "{$tableAlias}.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
-            case 'year':
-                return "{$tableAlias}.created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)";
-            default:
-                return "DATE({$tableAlias}.created_at) = CURDATE()";
+    /**
+     * Generate sales report by consuming Order API
+     */
+    public function generateSalesReport($startDate = null, $endDate = null) {
+        try {
+            // For now, use direct database access to ensure it works
+            // TODO: Re-enable API consumption once we debug the session issue
+            $ordersData = $this->getOrdersFromDatabase();
+            
+            if (!$ordersData || $ordersData['status'] !== 'success') {
+                throw new Exception('Failed to fetch orders data');
+            }
+
+            $orders = $ordersData['data']['orders'];
+            
+            // Filter orders by date if provided
+            if ($startDate && $endDate) {
+                $originalCount = count($orders);
+                $orders = array_filter($orders, function($order) use ($startDate, $endDate) {
+                    $orderDate = date('Y-m-d', strtotime($order['created_at']));
+                    return $orderDate >= $startDate && $orderDate <= $endDate;
+                });
+                $filteredCount = count($orders);
+                error_log("Sales Report - Date filter: {$startDate} to {$endDate}, Orders: {$originalCount} -> {$filteredCount}");
+            }
+
+            // Calculate sales metrics
+            $totalSales = 0;
+            $totalOrders = count($orders);
+            $statusCounts = [];
+            $dailySales = [];
+
+            foreach ($orders as $order) {
+                $totalSales += (float)$order['total'];
+                
+                // Count by status
+                $status = $order['status'];
+                $statusCounts[$status] = ($statusCounts[$status] ?? 0) + 1;
+                
+                // Group by date
+                $date = date('Y-m-d', strtotime($order['created_at']));
+                $dailySales[$date] = ($dailySales[$date] ?? 0) + (float)$order['total'];
+            }
+
+            // Sort daily sales by date (oldest first)
+            ksort($dailySales);
+
+            // Calculate average order value
+            $averageOrderValue = $totalOrders > 0 ? $totalSales / $totalOrders : 0;
+
+            return [
+                'status' => 'success',
+                'data' => [
+                    'total_sales' => $totalSales,
+                    'total_orders' => $totalOrders,
+                    'average_order_value' => $averageOrderValue,
+                    'status_distribution' => $statusCounts,
+                    'daily_sales' => $dailySales,
+                    'orders' => $orders, // 添加订单数据用于表格显示
+                    'date_range' => [
+                        'start' => $startDate,
+                        'end' => $endDate
+                    ]
+                ]
+            ];
+
+        } catch (Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => 'Failed to generate sales report: ' . $e->getMessage()
+            ];
         }
     }
-    
-    private function bindDateParams($stmt, $dateRange) {
-        // This method is for consistency, but our current date conditions don't use parameters
-        // If we need custom date ranges in the future, we can add parameter binding here
+
+    /**
+     * Generate order status report
+     */
+    public function generateOrderStatusReport($startDate = null, $endDate = null) {
+        try {
+            // For now, use direct database access to ensure it works
+            // TODO: Re-enable API consumption once we debug the session issue
+            $ordersData = $this->getOrdersFromDatabase();
+            
+            if (!$ordersData || $ordersData['status'] !== 'success') {
+                throw new Exception('Failed to fetch orders data');
+            }
+
+            $orders = $ordersData['data']['orders'];
+            
+            // Filter orders by date if provided
+            if ($startDate && $endDate) {
+                $originalCount = count($orders);
+                $orders = array_filter($orders, function($order) use ($startDate, $endDate) {
+                    $orderDate = date('Y-m-d', strtotime($order['created_at']));
+                    return $orderDate >= $startDate && $orderDate <= $endDate;
+                });
+                $filteredCount = count($orders);
+                error_log("Status Report - Date filter: {$startDate} to {$endDate}, Orders: {$originalCount} -> {$filteredCount}");
+            }
+            
+            $statusReport = [];
+            $totalOrders = count($orders);
+
+            foreach ($orders as $order) {
+                $status = $order['status'];
+                if (!isset($statusReport[$status])) {
+                    $statusReport[$status] = [
+                        'count' => 0,
+                        'percentage' => 0,
+                        'total_value' => 0
+                    ];
+                }
+                
+                $statusReport[$status]['count']++;
+                $statusReport[$status]['total_value'] += (float)$order['total'];
+            }
+
+            // Calculate percentages
+            foreach ($statusReport as $status => &$data) {
+                $data['percentage'] = $totalOrders > 0 ? ($data['count'] / $totalOrders) * 100 : 0;
+            }
+
+            return [
+                'status' => 'success',
+                'data' => [
+                    'total_orders' => $totalOrders,
+                    'status_breakdown' => $statusReport
+                ]
+            ];
+
+        } catch (Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => 'Failed to generate order status report: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Consume Order API to get orders data
+     */
+    private function consumeOrderAPI($filters = []) {
+        // Use explicit .php endpoint for compatibility on environments without URL rewriting
+        $url = $this->apiBaseUrl . '/orders.php';
+        
+        // Add query parameters
+        if (!empty($filters)) {
+            $url .= '?' . http_build_query($filters);
+        }
+
+        // Initialize cURL with simpler approach
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5); // Further reduced timeout for faster fallback
+        
+        // Set headers
+        $headers = [
+            'Content-Type: application/json',
+            'Accept: application/json',
+        ];
+        
+        // Add session cookie if available
+        if (isset($_SERVER['HTTP_COOKIE'])) {
+            $headers[] = 'Cookie: ' . $_SERVER['HTTP_COOKIE'];
+        }
+        
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        // Execute request
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        // Debug information
+        error_log("API Debug - URL: {$url}, HTTP Code: {$httpCode}, Error: " . ($error ?: 'none'));
+
+        if ($response === false || $error) {
+            throw new Exception("API request failed: {$error}");
+        }
+
+        if ($httpCode !== 200) {
+            throw new Exception("API request failed with HTTP code: {$httpCode}");
+        }
+
+        $data = json_decode($response, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new Exception('Invalid JSON response from API');
+        }
+
+        return $data;
+    }
+
+    /**
+     * Get specific order details from API
+     */
+    public function getOrderDetailsFromAPI($orderId) {
+        try {
+            // Support .php endpoint and id via query parameter
+            $url = $this->apiBaseUrl . '/orders.php?id=' . urlencode($orderId);
+            
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            
+            // Set headers
+            $headers = [
+                'Content-Type: application/json',
+                'Accept: application/json',
+            ];
+            
+            // Add session cookie if available
+            if (isset($_SERVER['HTTP_COOKIE'])) {
+                $headers[] = 'Cookie: ' . $_SERVER['HTTP_COOKIE'];
+            }
+            
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+
+            if ($response === false || $error) {
+                throw new Exception("API request failed: {$error}");
+            }
+
+            if ($httpCode !== 200) {
+                throw new Exception("API request failed with HTTP code: {$httpCode}");
+            }
+
+            $data = json_decode($response, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new Exception('Invalid JSON response from API');
+            }
+
+            return $data;
+
+        } catch (Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => 'Failed to fetch order details: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Fallback method to get orders directly from database if API fails
+     */
+    private function getOrdersFromDatabase() {
+        try {
+            // Check if orderModel is properly initialized
+            if (!$this->orderModel) {
+                throw new Exception('Order model not initialized');
+            }
+            
+            // Try to get orders with error handling
+            $orders = $this->orderModel->getAllOrdersWithFilters('', '', 1000, 0);
+            
+            if ($orders === false) {
+                throw new Exception('Failed to retrieve orders from database');
+            }
+            
+            return [
+                'status' => 'success',
+                'data' => [
+                    'orders' => $orders,
+                    'pagination' => [
+                        'total' => count($orders),
+                        'limit' => 1000,
+                        'offset' => 0,
+                        'has_more' => false
+                    ]
+                ]
+            ];
+        } catch (Exception $e) {
+            error_log("Database fallback error: " . $e->getMessage());
+            return [
+                'status' => 'error',
+                'message' => 'Database fallback failed: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Generate comprehensive business report
+     */
+    public function generateBusinessReport($startDate = null, $endDate = null) {
+        try {
+            // Get sales report with date filter
+            $salesReport = $this->generateSalesReport($startDate, $endDate);
+            if ($salesReport['status'] === 'error') {
+                throw new Exception($salesReport['message']);
+            }
+
+            // Get order status report with date filter
+            $statusReport = $this->generateOrderStatusReport($startDate, $endDate);
+            if ($statusReport['status'] === 'error') {
+                throw new Exception($statusReport['message']);
+            }
+
+            // Get product performance data
+            $products = $this->productModel->getAll();
+            $categories = $this->categoryModel->getAll();
+
+            return [
+                'status' => 'success',
+                'data' => [
+                    'sales_summary' => $salesReport['data'],
+                    'order_status_summary' => $statusReport['data'],
+                    'products_count' => count($products),
+                    'categories_count' => count($categories),
+                    'generated_at' => date('Y-m-d H:i:s'),
+                    'date_range' => [
+                        'start' => $startDate,
+                        'end' => $endDate
+                    ]
+                ]
+            ];
+
+        } catch (Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => 'Failed to generate business report: ' . $e->getMessage()
+            ];
+        }
     }
 } 

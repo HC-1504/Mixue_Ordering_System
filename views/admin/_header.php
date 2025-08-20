@@ -1,5 +1,7 @@
 <?php
-define('BASE_URL', '/Assignment');
+if (!defined('BASE_URL')) {
+    define('BASE_URL', '/Assignment');
+}
 $page_title = $page_title ?? 'Mixue Admin Panel';
 
 // Include the auth controller to get access to $authManager

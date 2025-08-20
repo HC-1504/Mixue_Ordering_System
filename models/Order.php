@@ -209,4 +209,110 @@ class Order
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
+
+    /**
+     * Get single order with related info (for API)
+     */
+    public function getOrderById(int $orderId)
+    {
+        $stmt = $this->conn->prepare(
+            "
+            SELECT o.*, u.name AS customer_name, u.email AS customer_email,
+                   b.name AS branch_name
+            FROM orders o
+            LEFT JOIN users u ON o.user_id = u.id
+            LEFT JOIN branches b ON o.branch_id = b.id
+            WHERE o.id = ?
+        "
+        );
+        $stmt->execute([$orderId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * List orders with optional search/status filters and pagination (for API)
+     */
+    public function getAllOrdersWithFilters(string $search = '', string $status = '', int $limit = 50, int $offset = 0): array
+    {
+        $conditions = [];
+        $params = [];
+
+        if ($status !== '') {
+            $conditions[] = 'o.status = ?';
+            $params[] = $status;
+        }
+
+        if ($search !== '') {
+            $conditions[] = '(u.name LIKE ? OR u.email LIKE ? OR CAST(o.id AS CHAR) LIKE ?)';
+            $like = "%{$search}%";
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        $whereSql = '';
+        if (count($conditions) > 0) {
+            $whereSql = 'WHERE ' . implode(' AND ', $conditions);
+        }
+
+        $sql = "
+            SELECT o.*, u.name AS customer_name, u.email AS customer_email, b.name AS branch_name
+            FROM orders o
+            LEFT JOIN users u ON o.user_id = u.id
+            LEFT JOIN branches b ON o.branch_id = b.id
+            {$whereSql}
+            ORDER BY o.created_at DESC
+            LIMIT " . intval($limit) . " OFFSET " . intval($offset);
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Total count for the same filters (for API pagination)
+     */
+    public function getOrdersCount(string $search = '', string $status = ''): int
+    {
+        $conditions = [];
+        $params = [];
+
+        if ($status !== '') {
+            $conditions[] = 'o.status = ?';
+            $params[] = $status;
+        }
+
+        if ($search !== '') {
+            $conditions[] = '(u.name LIKE ? OR u.email LIKE ? OR CAST(o.id AS CHAR) LIKE ?)';
+            $like = "%{$search}%";
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        $whereSql = '';
+        if (count($conditions) > 0) {
+            $whereSql = 'WHERE ' . implode(' AND ', $conditions);
+        }
+
+        $sql = "
+            SELECT COUNT(*)
+            FROM orders o
+            LEFT JOIN users u ON o.user_id = u.id
+            {$whereSql}
+        ";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        return (int)$stmt->fetchColumn();
+    }
+
+    /**
+     * Update an order status (for API)
+     */
+    public function updateOrderStatus(int $orderId, string $newStatus): bool
+    {
+        $stmt = $this->conn->prepare("UPDATE orders SET status = ? WHERE id = ?");
+        return $stmt->execute([$newStatus, $orderId]);
+    }
 }
