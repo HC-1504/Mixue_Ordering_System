@@ -5,7 +5,7 @@ header('Content-Type: application/json');
 
 try {
     $productModel = new Product();
-    $products = $productModel->getAvailableWithCategory();
+    $products = $productModel->getMenuWithCategoryApi();
     echo json_encode($products);
 } catch (Exception $e) {
     http_response_code(500);

@@ -153,7 +153,7 @@ class Product {
     }
 
     // Fongyee added
-    public static function getAvailableWithCategory() {
+    public static function getMenuWithCategoryApi() {
         $conn = Database::getInstance();
         $stmt = $conn->query("
             SELECT p.*, c.name AS category_name
