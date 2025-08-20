@@ -13,9 +13,8 @@ class OrderDetail
     public function getOrderDetailsByOrderId($orderId)
     {
         $stmt = $this->conn->prepare("
-            SELECT od.*, p.name AS product_name, p.price AS unit_price
+            SELECT od.product_id, od.quantity, od.temperature, od.sugar
             FROM order_details od
-            JOIN products p ON od.product_id = p.id
             WHERE od.order_id = ?
         ");
         $stmt->execute([$orderId]);

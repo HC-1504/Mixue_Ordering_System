@@ -15,7 +15,7 @@
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     <?php endif; ?>
-                    
+
                     <?php if ($errors): ?>
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <i class="fas fa-exclamation-triangle"></i>
@@ -70,10 +70,10 @@
                                         <td><?= htmlspecialchars($order->phone) ?></td>
                                         <td>
                                             <?php
-                                                                                         $typeIcons = [
-                                                 'delivery' => 'fas fa-truck',
-                                                 'pickup' => 'fas fa-hand-holding'
-                                             ];
+                                            $typeIcons = [
+                                                'delivery' => 'fas fa-truck',
+                                                'pickup' => 'fas fa-hand-holding'
+                                            ];
                                             $icon = $typeIcons[strtolower($order->type)] ?? 'fas fa-question';
                                             ?>
                                             <i class="<?= $icon ?>"></i> <?= htmlspecialchars($order->type) ?>
@@ -98,17 +98,17 @@
                                         <td><?= date('M j, Y H:i', strtotime($order->created_at)) ?></td>
                                         <td>
                                             <div class="btn-group btn-group-sm" role="group">
-                                                <a href="orders.php?action=view&id=<?= $order->id ?>" 
-                                                   class="btn btn-outline-primary" title="View Details">
+                                                <a href="orders.php?action=view&id=<?= $order->id ?>"
+                                                    class="btn btn-outline-primary" title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
                                                 <?php if (!in_array($order->status, ['Completed', 'Cancelled'])): ?>
-                                                    <button type="button" class="btn btn-outline-success" 
-                                                            data-bs-toggle="modal" 
-                                                            data-bs-target="#statusModal"
-                                                            data-order-id="<?= $order->id ?>"
-                                                            data-current-status="<?= htmlspecialchars($order->status) ?>"
-                                                            title="Update Status">
+                                                    <button type="button" class="btn btn-outline-success"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#statusModal"
+                                                        data-order-id="<?= $order->id ?>"
+                                                        data-current-status="<?= htmlspecialchars($order->status) ?>"
+                                                        title="Update Status">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
                                                 <?php endif; ?>
@@ -119,7 +119,7 @@
                             </tbody>
                         </table>
                     </div>
-                    
+
                     <?php if (empty($orders)): ?>
                         <div class="text-center py-5">
                             <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
@@ -143,7 +143,7 @@
             <form action="orders.php?action=update_status" method="POST">
                 <div class="modal-body">
                     <p>Update status for Order #<strong id="modal-order-id"></strong></p>
-                    
+
                     <div class="mb-3">
                         <label for="new_status" class="form-label">New Status</label>
                         <select class="form-select" name="new_status" id="new_status" required>
@@ -155,7 +155,7 @@
                             <option value="Cancelled">Cancelled</option>
                         </select>
                     </div>
-                    
+
                     <input type="hidden" name="order_id" id="modal-order-id-input">
                     <input type="hidden" name="_csrf" value="<?= Session::generateCsrfToken() ?>">
                 </div>
@@ -169,41 +169,41 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const statusModal = document.getElementById('statusModal');
-    if (statusModal) {
-        statusModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const orderId = button.getAttribute('data-order-id');
-            const currentStatus = button.getAttribute('data-current-status');
-            
-            // Update modal content
-            document.getElementById('modal-order-id').textContent = orderId;
-            document.getElementById('modal-order-id-input').value = orderId;
-            
-            // Set current status as selected
-            const statusSelect = document.getElementById('new_status');
-            statusSelect.value = currentStatus;
-        });
-    }
-});
+    document.addEventListener('DOMContentLoaded', function() {
+        const statusModal = document.getElementById('statusModal');
+        if (statusModal) {
+            statusModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const orderId = button.getAttribute('data-order-id');
+                const currentStatus = button.getAttribute('data-current-status');
 
-function filterOrders(status) {
-    const table = document.getElementById('ordersTable');
-    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
-    
-    // Update active button
-    document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
-    
-    for (let row of rows) {
-        if (status === 'all' || row.getAttribute('data-status') === status) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
+                // Update modal content
+                document.getElementById('modal-order-id').textContent = orderId;
+                document.getElementById('modal-order-id-input').value = orderId;
+
+                // Set current status as selected
+                const statusSelect = document.getElementById('new_status');
+                statusSelect.value = currentStatus;
+            });
+        }
+    });
+
+    function filterOrders(status) {
+        const table = document.getElementById('ordersTable');
+        const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+        // Update active button
+        document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+
+        for (let row of rows) {
+            if (status === 'all' || row.getAttribute('data-status') === status) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
         }
     }
-}
 </script>
 
-<?php require_once __DIR__ . '/../_footer.php'; ?> 
+<?php require_once __DIR__ . '/../_footer.php'; ?>

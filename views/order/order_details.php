@@ -12,7 +12,7 @@
             <li class="list-group-item"><strong>Delivery Address:</strong> <?= htmlspecialchars($order['address'] ?? '-') ?></li>
             <li class="list-group-item"><strong>Delivery Fee:</strong> RM <?= number_format($order['delivery_fee'] ?? 0, 2) ?></li>
         <?php endif; ?>
-        <li class="list-group-item"><strong>Total:</strong> RM <?= number_format($order['total'] ?? 0, 2) ?></li>
+        <li class="list-group-item"><strong>Total (Included Delivery Fee if any):</strong> RM <?= number_format($order['total'] ?? 0, 2) ?></li>
         <li class="list-group-item"><strong>Status:</strong> <?= htmlspecialchars($order['status'] ?? '-') ?></li>
     </ul>
 
@@ -32,7 +32,10 @@
             <tbody>
                 <?php foreach ($details as $item): ?>
                     <tr>
-                        <td><?= htmlspecialchars($item['product_name']) ?></td>
+                        <td>
+                            <?= htmlspecialchars($item['product_name']) ?><br>
+                            <img src="<?= BASE_URL ?>/admin/uploads/<?= htmlspecialchars($item['product_image']) ?>" alt="<?= htmlspecialchars($item['product_name']) ?>" class="img-fluid" style="max-width: 100px;">
+                        </td>
                         <td><?= htmlspecialchars($item['quantity']) ?></td>
                         <td><?= htmlspecialchars($item['temperature']) ?></td>
                         <td><?= htmlspecialchars($item['sugar']) ?></td>
@@ -41,6 +44,12 @@
                     </tr>
                 <?php endforeach; ?>
             </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="5" class="text-end">Subtotal (Products Only):</th>
+                    <th>RM <?= number_format($subtotal, 2) ?></th>
+                </tr>
+            </tfoot>
         </table>
     <?php else: ?>
         <p class="mt-4">No products found for this order.</p>

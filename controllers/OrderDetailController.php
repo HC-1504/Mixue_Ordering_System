@@ -23,6 +23,33 @@ class OrderDetailController
 
         $order = $data['order'];
         $details = $data['details'];
+
+        // Consume the menu API to get product details
+        $menuJson = file_get_contents('http://' . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . '/../api/menu.php');
+        $menuItems = json_decode($menuJson, true);
+        $menuMap = array_column($menuItems, null, 'id');
+
+        // Combine order details with menu details
+        $fullDetails = [];
+        foreach ($details as $item) {
+            $productId = $item['product_id'];
+            if (isset($menuMap[$productId])) {
+                $product = $menuMap[$productId];
+                $fullDetails[] = array_merge($item, [
+                    'product_name' => $product['name'],
+                    'unit_price' => $product['price'],
+                    'product_image' => $product['image']
+                ]);
+            }
+        }
+        $details = $fullDetails;
+
+        // Calculate subtotal
+        $subtotal = 0;
+        foreach ($details as $item) {
+            $subtotal += $item['unit_price'] * $item['quantity'];
+        }
+
         require __DIR__ . '/../views/order/order_details.php';
     }
 

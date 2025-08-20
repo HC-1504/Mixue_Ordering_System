@@ -10,6 +10,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'add':
             $controller->add();
             break;
+        case 'add_batch':
+            $controller->addBatch();
+            break;
         case 'update':
             $controller->update($_POST);
             break;

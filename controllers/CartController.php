@@ -79,6 +79,31 @@ class CartController
         exit;
     }
 
+    public function addBatch()
+    {
+        Session::start();
+
+        if (!isset($_POST['_csrf']) || !Session::verifyCsrfToken($_POST['_csrf'])) {
+            die('CSRF token validation failed.');
+        }
+
+        $items = $_POST['items'] ?? [];
+
+        if (!empty($items) && is_array($items)) {
+            foreach ($items as $item) {
+                Cart::add([
+                    'id' => $item['id'],
+                    'quantity' => $item['quantity'],
+                    'temperature' => $item['temperature'],
+                    'sugar' => $item['sugar'],
+                ]);
+            }
+        }
+
+        header('Location: ' . BASE_URL . '/routes/cart.php');
+        exit;
+    }
+
     public function update()
     {
         Session::start();

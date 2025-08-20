@@ -200,8 +200,14 @@ require_once __DIR__ . '/../../includes/header.php';
             <div class="modal-body text-center">
                 <p>How would you like to receive your order?</p>
                 <div class="d-flex justify-content-center gap-3">
-                    <a href="<?= BASE_URL ?>/routes/order.php?action=confirm&type=delivery" class="btn btn-outline-primary">Delivery</a>
-                    <a href="<?= BASE_URL ?>/routes/order.php?action=confirm&type=pickup" class="btn btn-outline-success">Pickup</a>
+                    <a href="<?= BASE_URL ?>/routes/order.php?action=confirm&type=delivery" class="btn btn-outline-primary d-flex flex-column align-items-center">
+                        <img src="<?= BASE_URL ?>/assets/images/delivery/delivery.png" alt="Delivery" width="100" height="100">
+                        <span class="mt-2">Delivery</span>
+                    </a>
+                    <a href="<?= BASE_URL ?>/routes/order.php?action=confirm&type=pickup" class="btn btn-outline-success d-flex flex-column align-items-center">
+                        <img src="<?= BASE_URL ?>/assets/images/delivery/pickup.png" alt="Pickup" width="100" height="100">
+                        <span class="mt-2">Pickup</span>
+                    </a>
                 </div>
             </div>
         </div>

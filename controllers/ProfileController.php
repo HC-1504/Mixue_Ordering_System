@@ -62,6 +62,9 @@ class ProfileController
         $errors = Session::get('profile_errors', []); Session::unset('profile_errors');
         $success = Session::get('profile_success'); Session::unset('profile_success');
 
+        // Generate a CSRF token for the re-order form
+        Session::generateCsrfToken();
+
         require_once __DIR__ . '/../views/profile.php';
     }
 

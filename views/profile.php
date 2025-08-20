@@ -100,7 +100,8 @@ require_once __DIR__ . '/../includes/header.php';
                                 <td><?= number_format($order['total'] ?? 0, 2) ?></td>
                                 <td><?= htmlspecialchars($order['status'] ?? '-') ?></td>
                                 <td>
-                                    <a href="<?= BASE_URL ?>/routes/order_details.php?id=<?= urlencode($order['id']) ?>" class="btn btn-info btn-sm">View Details</a>
+                                    <a href="<?= BASE_URL ?>/routes/order_details.php?id=<?= urlencode($order['id']) ?>" class="btn btn-warning btn-sm">View Details</a>
+                                    <button class="btn btn-info btn-sm reorder-btn" data-order-id="<?= $order['id'] ?>">Re-order</button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -111,7 +112,58 @@ require_once __DIR__ . '/../includes/header.php';
             <?php endif; ?>
         </div>
     </div>
+
+    <!-- Hidden form for re-ordering -->
+    <form id="reorder-form" action="<?= BASE_URL ?>/routes/cart.php" method="POST" style="display: none;">
+        <input type="hidden" name="action" value="add_batch">
+        <input type="hidden" name="_csrf" value="<?= htmlspecialchars($_SESSION['_csrf']) ?>">
+        <div id="reorder-items-container"></div>
+    </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const reorderButtons = document.querySelectorAll('.reorder-btn');
+    const reorderForm = document.getElementById('reorder-form');
+    const reorderItemsContainer = document.getElementById('reorder-items-container');
+
+    reorderButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const orderId = this.getAttribute('data-order-id');
+            
+            // Fetch the details for the selected order
+            fetch(`<?= BASE_URL ?>/api/order_details.php?id=${orderId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error || !data.details) {
+                        alert('Could not retrieve order details.');
+                        return;
+                    }
+
+                    // Clear any previous items from the form
+                    reorderItemsContainer.innerHTML = '';
+
+                    // Dynamically create hidden inputs for each item
+                    data.details.forEach((item, index) => {
+                        reorderItemsContainer.innerHTML += `
+                            <input type="hidden" name="items[${index}][id]" value="${item.product_id}">
+                            <input type="hidden" name="items[${index}][quantity]" value="${item.quantity}">
+                            <input type="hidden" name="items[${index}][temperature]" value="${item.temperature}">
+                            <input type="hidden" name="items[${index}][sugar]" value="${item.sugar}">
+                        `;
+                    });
+
+                    // Submit the form to add items to the cart
+                    reorderForm.submit();
+                })
+                .catch(error => {
+                    console.error('Error fetching order details:', error);
+                    alert('An error occurred while trying to re-order.');
+                });
+        });
+    });
+});
+</script>
 
 <?php
 // Include the main website footer
