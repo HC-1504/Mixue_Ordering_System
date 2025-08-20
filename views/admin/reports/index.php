@@ -27,6 +27,18 @@
     .gap-2 {
         gap: 0.5rem;
     }
+    .chart-pie, .chart-area {
+        position: relative;
+    }
+    .no-data-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #858796;
+        font-size: 1.2rem;
+        text-align: center;
+    }
 </style>
 
 <div class="container-fluid">
@@ -131,7 +143,8 @@
                 <div class="card-body">
                     <div class="chart-pie pt-4 pb-2">
                         <canvas id="orderStatusChart"></canvas>
-                        </div>
+                        <div id="orderStatusNoData" class="no-data-overlay" style="display: none;">No Data Available</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -145,8 +158,8 @@
                 <div class="card-body">
                     <div class="chart-area">
                         <canvas id="dailySalesChart"></canvas>
-                                </div>
-                            </div>
+                        <div id="dailySalesNoData" class="no-data-overlay" style="display: none;">No Data Available</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -327,26 +340,22 @@ function generateReportWithFilter(period) {
     let startDate = null;
     let endDate = null;
     
-    // For demo purposes, let's use the latest order date as reference
-    // This ensures we have data to show for different time periods
-    const latestOrderDate = new Date('2025-07-24'); // Based on your data
-    const endDateStr = latestOrderDate.toISOString().split('T')[0];
+    // Use the current date for dynamic filtering
+    const today = new Date();
+    endDate = today.toISOString().split('T')[0];
     
     switch(period) {
         case '1week':
-            const weekAgo = new Date(latestOrderDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
             startDate = weekAgo.toISOString().split('T')[0];
-            endDate = endDateStr;
             break;
         case '1month':
-            const monthAgo = new Date(latestOrderDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
             startDate = monthAgo.toISOString().split('T')[0];
-            endDate = endDateStr;
             break;
         case '3months':
-            const threeMonthsAgo = new Date(latestOrderDate.getTime() - 90 * 24 * 60 * 60 * 1000);
+            const threeMonthsAgo = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
             startDate = threeMonthsAgo.toISOString().split('T')[0];
-            endDate = endDateStr;
             break;
         case 'all':
             startDate = null;
@@ -422,31 +431,50 @@ function generateBusinessReport() {
 
 function updateDashboard(data) {
     console.log('Dashboard data received:', data); // Debug log
-    
+
+    const hasData = data.sales_summary && data.sales_summary.total_orders > 0;
+
     // Update summary cards
-    document.getElementById('totalSales').textContent = '$' + data.sales_summary.total_sales.toFixed(2);
-    document.getElementById('totalOrders').textContent = data.sales_summary.total_orders;
-    document.getElementById('avgOrderValue').textContent = '$' + data.sales_summary.average_order_value.toFixed(2);
-    document.getElementById('totalProducts').textContent = data.products_count;
+    document.getElementById('totalSales').textContent = '$' + (hasData ? data.sales_summary.total_sales.toFixed(2) : '0.00');
+    document.getElementById('totalOrders').textContent = hasData ? data.sales_summary.total_orders : '0';
+    document.getElementById('avgOrderValue').textContent = '$' + (hasData ? data.sales_summary.average_order_value.toFixed(2) : '0.00');
+    document.getElementById('totalProducts').textContent = data.products_count || '0';
 
-    // Update order status chart
-    const statusLabels = Object.keys(data.order_status_summary.status_breakdown);
-    const statusData = Object.values(data.order_status_summary.status_breakdown).map(item => item.count);
-    
-    orderStatusChart.data.labels = statusLabels;
-    orderStatusChart.data.datasets[0].data = statusData;
-    orderStatusChart.update();
+    // Toggle visibility of no-data messages
+    document.getElementById('orderStatusNoData').style.display = hasData ? 'none' : 'block';
+    document.getElementById('dailySalesNoData').style.display = hasData ? 'none' : 'block';
+    document.getElementById('orderStatusChart').style.display = hasData ? 'block' : 'none';
+    document.getElementById('dailySalesChart').style.display = hasData ? 'block' : 'none';
 
-    // Update daily sales chart
-    const dailyLabels = Object.keys(data.sales_summary.daily_sales);
-    const dailyData = Object.values(data.sales_summary.daily_sales);
-    
-    dailySalesChart.data.labels = dailyLabels;
-    dailySalesChart.data.datasets[0].data = dailyData;
-    dailySalesChart.update();
+    if (hasData) {
+        // Update order status chart
+        const statusLabels = Object.keys(data.order_status_summary.status_breakdown);
+        const statusData = Object.values(data.order_status_summary.status_breakdown).map(item => item.count);
+        
+        orderStatusChart.data.labels = statusLabels;
+        orderStatusChart.data.datasets[0].data = statusData;
+        orderStatusChart.update();
 
-    // Update orders table - try different data sources
-    const orders = data.sales_summary.orders || data.orders || [];
+        // Update daily sales chart
+        const dailyLabels = Object.keys(data.sales_summary.daily_sales);
+        const dailyData = Object.values(data.sales_summary.daily_sales);
+        
+        dailySalesChart.data.labels = dailyLabels;
+        dailySalesChart.data.datasets[0].data = dailyData;
+        dailySalesChart.update();
+    } else {
+        // Clear chart data if no orders
+        orderStatusChart.data.labels = [];
+        orderStatusChart.data.datasets[0].data = [];
+        orderStatusChart.update();
+
+        dailySalesChart.data.labels = [];
+        dailySalesChart.data.datasets[0].data = [];
+        dailySalesChart.update();
+    }
+
+    // Update orders table
+    const orders = (hasData && data.sales_summary.orders) ? data.sales_summary.orders : [];
     updateOrdersTable(orders);
 }
 
@@ -487,4 +515,4 @@ function getStatusBadgeClass(status) {
 }
 </script>
 
-<?php require_once __DIR__ . '/../_footer.php'; ?> 
+<?php require_once __DIR__ . '/../_footer.php'; ?>
