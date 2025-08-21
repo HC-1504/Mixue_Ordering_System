@@ -39,8 +39,12 @@ require_once __DIR__ . '/../includes/header.php';
                 RM <?= number_format($user->balance ?? 0, 2) ?>
             </div>
             <div class="d-flex justify-content-center gap-2 mb-2">
-                <a href="<?= BASE_URL ?>/reload.php" class="btn btn-success btn-lg"><i class="fas fa-wallet"></i> Reload Money</a>
-                <a href="<?= BASE_URL ?>/views/change_password.php" class="btn btn-primary btn-lg"><i class="fas fa-key"></i> Change Password</a>
+                <form action="<?= BASE_URL ?>/reload.php" method="GET" style="display: inline;">
+                    <button type="submit" class="btn btn-success btn-lg"><i class="fas fa-wallet"></i> Reload Money</button>
+                </form>
+                <form action="<?= BASE_URL ?>/change_password.php" method="GET" style="display: inline;">
+                    <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-key"></i> Change Password</button>
+                </form>
             </div>
         </div>
     </div>

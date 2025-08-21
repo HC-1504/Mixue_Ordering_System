@@ -2,13 +2,13 @@
 // views/login_logout_modules/login.php - THE CORRECTED VERSION
 
 // --- CHANGE 1: We now include the main config file first ---
-require_once '../../includes/config.php';
-require_once '../../includes/session.php';
+require_once(__DIR__ . '/../../includes/config.php');
+require_once(__DIR__ . '/../../includes/session.php');
 
 Session::start();
 
 // --- CHANGE 2: We include our factory file, but DO NOT create a new Auth() object ---
-require_once '../../controllers/auth.php';
+require_once(__DIR__ . '/../../controllers/auth.php');
 // The line "$auth = new Auth();" has been DELETED.
 
 $page_title = 'Login - Mixue System';
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-require_once '../../includes/header.php';
+require_once(__DIR__ . '/../../includes/header.php');
 ?>
 
 <div class="auth-content-wrapper">
@@ -91,7 +91,7 @@ require_once '../../includes/header.php';
 </div>
 
 <?php 
-require_once '../../includes/footer.php'; 
+require_once(__DIR__ . '/../../includes/footer.php'); 
 ?>
 
 <script>

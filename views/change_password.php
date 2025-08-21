@@ -72,4 +72,4 @@ require_once __DIR__ . '/../includes/header.php';
         });
     });
 </script>
-<?php require_once '../includes/footer.php'; ?> 
+<?php require_once __DIR__ . '/../includes/header.php'; ?> 

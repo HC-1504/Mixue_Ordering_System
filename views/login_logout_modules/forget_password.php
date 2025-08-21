@@ -4,11 +4,14 @@ $page_title = 'Forgot Password - Mixue System';
 $body_class = 'login-page'; // <-- DEFINE THE CLASS HERE, BEFORE THE HEADER
 
 // Include necessary dependencies first
-require_once '../../includes/config.php';
-require_once '../../includes/session.php';
+require_once(__DIR__ . '/../../includes/config.php');
+require_once(__DIR__ . '/../../includes/session.php');
+
+// Start the session
+Session::start();
 
 // Include the auth controller to get access to $authManager
-require_once '../../controllers/auth.php';
+require_once(__DIR__ . '/../../controllers/auth.php');
 
 // If user is already logged in, they shouldn't be here.
 if (Session::isLoggedIn()) {
@@ -16,13 +19,10 @@ if (Session::isLoggedIn()) {
     exit();
 }
 
-// Include header AFTER all potential redirects
-require_once '../../includes/header.php'; // <-- NOW THE HEADER CAN USE THE VARIABLE
-
 $message = null;
 $error = null;
 
-// --- PHP Logic for password reset request (no changes needed) ---
+// --- PHP Logic for password reset request ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Session::verifyCsrfToken($_POST['_csrf'] ?? '')) {
         $error = 'Invalid security token. Please try again.';
@@ -36,6 +36,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+// Generate a new CSRF token for the form
+$csrf_token = Session::generateCsrfToken();
+
+// Include header AFTER all potential redirects
+require_once(__DIR__ . '/../../includes/header.php'); // <-- NOW THE HEADER CAN USE THE VARIABLE
+?>
 ?>
 
 <!-- The HTML content is wrapped for proper layout -->
@@ -47,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if ($message): ?><div class="message-box success"><?= htmlspecialchars($message) ?></div><?php endif; ?>
 
     <form class="login-form" action="" method="POST">
-        <input type="hidden" name="_csrf" value="<?= Session::generateCsrfToken() ?>">
+        <input type="hidden" name="_csrf" value="<?= $csrf_token ?>">
         <p>
             <label for="email">Your Email Address</label>
             <input type="email" id="email" name="email" required placeholder="you@example.com">
@@ -62,5 +69,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <?php 
 // Use the main website footer
-require_once '../../includes/footer.php'; 
+require_once(__DIR__ . '/../../includes/footer.php'); 
 ?>

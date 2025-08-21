@@ -4,24 +4,27 @@ $page_title = 'Reset Password - Mixue System';
 $body_class = 'login-page';
 
 // Include necessary dependencies first
-require_once '../../includes/config.php';
-require_once '../../includes/session.php';
+require_once(__DIR__ . '/../../includes/config.php');
+require_once(__DIR__ . '/../../includes/session.php');
+
+// Start the session
+Session::start();
 
 // Include the auth controller to get access to $authManager
-require_once '../../controllers/auth.php';
+require_once(__DIR__ . '/../../controllers/auth.php');
 
 $token = filter_input(INPUT_GET, 'token', FILTER_SANITIZE_STRING);
 if (!$token) {
     // A simple way to handle a critical error
     $page_title = 'Error - Reset Password';
-    require_once '../../includes/header.php';
+    require_once(__DIR__ . '/../../includes/header.php');
     echo "<div class='login-container error'>Error: No password reset token provided.</div>";
-    require_once '../../includes/footer.php';
+    require_once(__DIR__ . '/../../includes/footer.php');
     exit();
 }
 
 $errors = [];
-// --- PHP Logic for completing the reset (no changes needed) ---
+// --- PHP Logic for completing the reset ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Session::verifyCsrfToken($_POST['_csrf'] ?? '')) {
         $errors[] = 'Invalid security token. Please try again.';
@@ -40,8 +43,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Generate a new CSRF token for the form
+$csrf_token = Session::generateCsrfToken();
+
 // Include header AFTER all potential redirects
-require_once '../../includes/header.php';
+require_once(__DIR__ . '/../../includes/header.php');
 ?>
 
 <!-- The HTML content is wrapped for proper layout -->
@@ -58,7 +64,7 @@ require_once '../../includes/header.php';
     <?php endif; ?>
 
     <form class="login-form" action="reset_password.php?token=<?= htmlspecialchars($token) ?>" method="POST">
-        <input type="hidden" name="_csrf" value="<?= Session::generateCsrfToken() ?>">
+        <input type="hidden" name="_csrf" value="<?= $csrf_token ?>">
         <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
         
         <p>
@@ -108,5 +114,5 @@ function togglePassword(fieldId, iconSpan) {
 
 <?php 
 // Use the main website footer
-require_once '../../includes/footer.php'; 
+require_once(__DIR__ . '/../../includes/footer.php'); 
 ?>

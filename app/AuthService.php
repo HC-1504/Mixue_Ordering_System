@@ -15,6 +15,7 @@ class AuthService
     private SecurityLogger $logger;
     const MAX_LOGIN_ATTEMPTS = 5;
     const LOCKOUT_TIME = '15 minutes';
+
     const PASSWORD_HISTORY_LIMIT = 5;
 
     public function __construct(PDO $pdo, SecurityLogger $logger)
@@ -65,6 +66,7 @@ class AuthService
         if ($user) {
             $token = bin2hex(random_bytes(32));
             $hash = hash('sha256', $token);
+            date_default_timezone_set('Asia/Kuala_Lumpur');
             $expires = (new DateTime('+' . self::LOCKOUT_TIME))->format('Y-m-d H:i:s');
             
             $stmt = $this->pdo->prepare("INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?, ?, ?)");
