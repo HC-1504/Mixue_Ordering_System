@@ -3,52 +3,33 @@ require_once __DIR__ . '/../../includes/header.php';
 ?>
 
 <div class="container mt-5">
-    <h1 class="mb-4 text-center">💳 Payment Page</h1>
+    <h1 class="mb-4 text-center">💳 Secure Payment</h1>
 
-    <?php if (!empty($error)): ?>
-        <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
-    <?php endif; ?>
+    <div id="payment-error" class="alert alert-danger" style="display: none;"></div>
 
     <div class="card p-4 shadow-sm">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3 class="mb-0">Total Amount: RM <?= number_format($order['total'], 2) ?></h3>
-            <div class="text-end">
-                <div style="font-size: 1rem; color: #666;">Your Balance:</div>
-                <div style="font-size: 1.5rem; font-weight: 700; color: #28a745;">
-                    RM <?= number_format($user_balance, 2) ?>
-                </div>
-            </div>
         </div>
 
-        <?php if (!$payment_success): ?>
-            <form method="POST" action="<?= BASE_URL ?>/routes/payment.php">
-                <div class="mb-3">
-                    <label for="payment_type" class="form-label">Payment Method</label>
-                    <select class="form-select" id="
-                    payment_type" name="payment_type" required>
-                        <option value="" disabled selected>Select payment method</option>
-                        <option value="TNG eWallet">TNG eWallet</option>
-                        <option value="GrabPay">GrabPay</option>
-                        <option value="Online Banking">Online Banking</option>
-                        <option value="Others">Others</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-success w-100">
-                    <i class="fas fa-credit-card me-2"></i>Proceed to Payment
-                </button>
-            </form>
-        <?php else: ?>
-            <div class="alert alert-success">
-                <i class="fas fa-check-circle"></i> Payment successful!
+        <form id="payment-form">
+            <div id="payment-element" class="mb-3">
+                <!-- A Stripe Payment Element will be inserted here. -->
             </div>
-        <?php endif; ?>
+
+            <button id="submit-button" class="btn btn-success w-100">
+                <div class="spinner-border spinner-border-sm" role="status" style="display: none;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <span class="button-text">Pay Now</span>
+            </button>
+        </form>
     </div>
 
     <div class="text-center mt-4">
         <a href="<?= BASE_URL ?>/routes/cart.php" class="btn btn-secondary">← Back to Cart</a>
     </div>
 </div>
-
 
 <!-- Payment Success Modal -->
 <div class="modal fade" id="paymentSuccessModal" tabindex="-1" aria-labelledby="paymentSuccessModalLabel" aria-hidden="true">
@@ -67,15 +48,120 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
     </div>
 </div>
-            
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<?php if ($payment_success): ?>
-    <script>
-        var modal = new bootstrap.Modal(document.getElementById('paymentSuccessModal'));
-        modal.show();
-    </script>
-<?php endif; ?>
 
+<script src="https://js.stripe.com/v3/"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const stripe = Stripe('<?= STRIPE_PUBLISHABLE_KEY ?>');
+        let elements;
+
+        const form = document.getElementById('payment-form');
+        const submitButton = document.getElementById('submit-button');
+        const spinner = submitButton.querySelector('.spinner-border');
+        const buttonText = submitButton.querySelector('.button-text');
+        const paymentError = document.getElementById('payment-error');
+
+        // Handle the redirect back from Stripe first
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('payment_success') === 'true') {
+            // This is a redirect back from a successful payment.
+            // Show the success modal and clear the local cart session.
+            var modal = new bootstrap.Modal(document.getElementById('paymentSuccessModal'));
+            modal.show();
+
+            // Hide the form and error messages to prevent confusion
+            form.style.display = 'none';
+            paymentError.style.display = 'none';
+
+            // Clear the cart session on the server
+            fetch('<?= BASE_URL ?>/api/clear_cart.php');
+
+            return; // Stop further script execution
+        }
+
+        // If we're not on a redirect, initialize the payment form.
+        initialize();
+        form.addEventListener('submit', handleSubmit);
+
+        // Fetches a payment intent and captures the client secret
+        async function initialize() {
+            // Step 1: Create a pending order on your server
+            const orderResponse = await fetch('<?= BASE_URL ?>/routes/payment.php', {
+                method: 'POST',
+            }).then((res) => res.json());
+
+            if (orderResponse.error) {
+                showError(orderResponse.error);
+                return;
+            }
+
+            // Step 2: Create a Payment Intent on your server
+            const {
+                clientSecret
+            } = await fetch('<?= BASE_URL ?>/routes/create_payment_intent.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    amount: <?= $order['total'] ?>,
+                    purpose: 'order'
+                }),
+            }).then((res) => res.json());
+
+            elements = stripe.elements({
+                clientSecret
+            });
+
+            const paymentElementOptions = {
+                layout: "tabs"
+            };
+
+            const paymentElement = elements.create("payment", paymentElementOptions);
+            paymentElement.mount("#payment-element");
+        }
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+            setLoading(true);
+
+            const {
+                error
+            } = await stripe.confirmPayment({
+                elements,
+                confirmParams: {
+                    // Make sure to change this to your payment completion page
+                    return_url: window.location.href.split('?')[0] + "?payment_success=true",
+                },
+            });
+
+            // This point will only be reached if there is an immediate error when
+            // confirming the payment. Otherwise, your customer will be redirected to
+            // your `return_url`. For some payment methods like iDEAL, your customer will
+            // be redirected to an intermediate site first to authorize the payment, then
+            // redirected to the `return_url`.
+            if (error.type === "card_error" || error.type === "validation_error") {
+                showError(error.message);
+            } else {
+                showError("An unexpected error occurred.");
+            }
+
+            setLoading(false);
+        }
+
+        function setLoading(isLoading) {
+            submitButton.disabled = isLoading;
+            spinner.style.display = isLoading ? 'inline-block' : 'none';
+            buttonText.textContent = isLoading ? 'Processing...' : 'Pay Now';
+        }
+
+        function showError(message) {
+            paymentError.textContent = message;
+            paymentError.style.display = 'block';
+        }
+    });
+</script>
 
 <?php
 require_once __DIR__ . '/../../includes/footer.php';

@@ -1,12 +1,15 @@
 <?php
 require_once __DIR__ . '/../includes/db.php';
 
-class Reload {
+class Reload
+{
     private $pdo;
-    public function __construct() {
+    public function __construct()
+    {
         $this->pdo = Database::getInstance();
     }
-    public function addReload($userId, $amount, $paymentType = null) {
+    public function addReload($userId, $amount, $paymentType = null)
+    {
         $stmt = $this->pdo->prepare('INSERT INTO reloads (user_id, amount, payment_type, created_at) VALUES (?, ?, ?, NOW())');
         $result = $stmt->execute([$userId, $amount, $paymentType]);
         if ($result) {
@@ -22,7 +25,8 @@ class Reload {
         }
         return $result;
     }
-    public function getReloadsByUser($userId) {
+    public function getReloadsByUser($userId)
+    {
         $sql = 'SELECT * FROM reloads WHERE user_id = ? ORDER BY created_at DESC';
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$userId]);
@@ -30,4 +34,4 @@ class Reload {
         // echo "[DEBUG] getReloadsByUser SQL: $sql | user_id=$userId<br>";
         return $stmt->fetchAll();
     }
-} 
+}
