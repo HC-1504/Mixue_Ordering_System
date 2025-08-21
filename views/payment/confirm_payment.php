@@ -69,7 +69,7 @@ require_once __DIR__ . '/../../includes/header.php';
             // Show the success modal and clear the local cart session.
             var modal = new bootstrap.Modal(document.getElementById('paymentSuccessModal'));
             modal.show();
-            
+
             // Hide the form and error messages to prevent confusion
             form.style.display = 'none';
             paymentError.style.display = 'none';
@@ -79,7 +79,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
             return; // Stop further script execution
         }
-        
+
         // If we're not on a redirect, initialize the payment form.
         initialize();
         form.addEventListener('submit', handleSubmit);
@@ -97,16 +97,22 @@ require_once __DIR__ . '/../../includes/header.php';
             }
 
             // Step 2: Create a Payment Intent on your server
-            const { clientSecret } = await fetch('<?= BASE_URL ?>/routes/create_payment_intent.php', {
+            const {
+                clientSecret
+            } = await fetch('<?= BASE_URL ?>/routes/create_payment_intent.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({
                     amount: <?= $order['total'] ?>,
                     purpose: 'order'
                 }),
             }).then((res) => res.json());
 
-            elements = stripe.elements({ clientSecret });
+            elements = stripe.elements({
+                clientSecret
+            });
 
             const paymentElementOptions = {
                 layout: "tabs"
@@ -120,7 +126,9 @@ require_once __DIR__ . '/../../includes/header.php';
             e.preventDefault();
             setLoading(true);
 
-            const { error } = await stripe.confirmPayment({
+            const {
+                error
+            } = await stripe.confirmPayment({
                 elements,
                 confirmParams: {
                     // Make sure to change this to your payment completion page
