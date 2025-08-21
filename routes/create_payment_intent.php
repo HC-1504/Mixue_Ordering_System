@@ -24,8 +24,10 @@ if ($purpose === 'order' && !$orderId) {
     exit;
 }
 
-if ($amount <= 0) {
-    echo json_encode(['error' => 'Invalid amount.']);
+// Enforce a minimum amount (e.g., 2.00 MYR for card payments)
+$minimumAmount = 2.00;
+if ($amount < $minimumAmount) {
+    echo json_encode(['error' => 'Amount must be at least RM ' . number_format($minimumAmount, 2) . '.']);
     exit;
 }
 
@@ -47,7 +49,10 @@ try {
     echo json_encode([
         'clientSecret' => $paymentIntent->client_secret,
     ]);
-} catch (Error $e) {
+} catch (\Stripe\Exception\ApiErrorException $e) {
     http_response_code(500);
     echo json_encode(['error' => $e->getMessage()]);
+} catch (Error $e) {
+    http_response_code(500);
+    echo json_encode(['error' => 'An unexpected server error occurred: ' . $e->getMessage()]);
 }

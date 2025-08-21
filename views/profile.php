@@ -104,8 +104,12 @@ require_once __DIR__ . '/../includes/header.php';
                                 <td><?= number_format($order['total'] ?? 0, 2) ?></td>
                                 <td><?= htmlspecialchars($order['status'] ?? '-') ?></td>
                                 <td>
-                                    <a href="<?= BASE_URL ?>/routes/order_details.php?id=<?= urlencode($order['id']) ?>" class="btn btn-warning btn-sm">View Details</a>
-                                    <button class="btn btn-info btn-sm reorder-btn" data-order-id="<?= $order['id'] ?>">Re-order</button>
+                                    <?php if (($order['status'] ?? '-') !== 'Cancelled'): ?>
+                                        <a href="<?= BASE_URL ?>/routes/order_details.php?id=<?= urlencode($order['id']) ?>" class="btn btn-warning btn-sm">View Details</a>
+                                        <button class="btn btn-info btn-sm reorder-btn" data-order-id="<?= $order['id'] ?>">Re-order</button>
+                                    <?php else: ?>
+                                        <span class="text-muted">N/A</span>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

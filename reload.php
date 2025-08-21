@@ -1,11 +1,11 @@
 <?php
-// C:\xampp\htdocs\Assignment\reload.php
+require_once __DIR__ . '/controllers/ReloadController.php';
 
-// This is the new page the user will visit to reload money.
+$controller = new ReloadController();
 
-session_start();
-require_once __DIR__ . '/controllers/ProfileController.php';
-
-$controller = new ProfileController();
-// We'll create this new method in the controller.
-$controller->handleReloadPage();
+// Basic routing
+if (isset($_GET['payment_intent'])) {
+    $controller->handleStripeReturn();
+} else {
+    $controller->showReloadPage();
+}

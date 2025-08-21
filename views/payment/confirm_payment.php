@@ -12,6 +12,10 @@ require_once __DIR__ . '/../../includes/header.php';
             <h3 class="mb-0">Total Amount: RM <?= number_format($order['total'], 2) ?></h3>
         </div>
 
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="mb-0">Your Current Balance: RM <?= number_format($user_balance, 2) ?></h3>
+        </div>
+
         <form id="payment-form">
             <div id="payment-element" class="mb-3">
                 <!-- A Stripe Payment Element will be inserted here. -->
@@ -49,6 +53,24 @@ require_once __DIR__ . '/../../includes/header.php';
     </div>
 </div>
 
+<!-- Payment Failure Modal -->
+<div class="modal fade" id="paymentFailureModal" tabindex="-1" aria-labelledby="paymentFailureModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="paymentFailureModalLabel">Payment Failed</h5>
+            </div>
+            <div class="modal-body text-center">
+                <p id="failure-message"></p>
+                <p>Please ensure you have sufficient balance or try again.</p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <a href="<?= BASE_URL ?>/profile.php" class="btn btn-primary">Go to Profile (Reload)</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://js.stripe.com/v3/"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -64,18 +86,43 @@ require_once __DIR__ . '/../../includes/header.php';
 
         // Handle the redirect back from Stripe first
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('payment_success') === 'true') {
-            // This is a redirect back from a successful payment.
-            // Show the success modal and clear the local cart session.
-            var modal = new bootstrap.Modal(document.getElementById('paymentSuccessModal'));
-            modal.show();
+        const paymentIntentId = urlParams.get('payment_intent'); // Get payment_intent ID from URL
 
+        if (urlParams.get('payment_success') === 'true' && paymentIntentId) {
             // Hide the form and error messages to prevent confusion
             form.style.display = 'none';
             paymentError.style.display = 'none';
 
-            // Clear the cart session on the server
-            fetch('<?= BASE_URL ?>/api/clear_cart.php');
+            const successModal = new bootstrap.Modal(document.getElementById('paymentSuccessModal'));
+            const failureModal = new bootstrap.Modal(document.getElementById('paymentFailureModal'));
+            const failureMessageElement = document.getElementById('failure-message');
+
+            // Finalize payment on the server
+            try {
+                const response = await fetch('<?= BASE_URL ?>/routes/finalize_payment.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ paymentIntentId: paymentIntentId })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log('Payment finalized successfully on server.');
+                    successModal.show(); // Show success modal
+                    // Clear the cart session on the server after successful finalization
+                    fetch('<?= BASE_URL ?>/api/clear_cart.php');
+                } else {
+                    console.error('Server-side finalization failed:', result.error);
+                    failureMessageElement.textContent = result.error; // Set specific error message
+                    failureModal.show(); // Show failure modal
+                }
+            } catch (error) {
+                console.error('Error during server-side finalization:', error);
+                failureMessageElement.textContent = 'An unexpected error occurred during payment finalization.';
+                failureModal.show(); // Show failure modal
+            }
 
             return; // Stop further script execution
         }

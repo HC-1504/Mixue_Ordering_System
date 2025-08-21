@@ -84,8 +84,6 @@ class PaymentController
         try {
             $conn->beginTransaction();
 
-            // As requested, we will not update the order status. It will remain 'pending'.
-
             // Record payment
             $paymentModel->record($orderId, $order['total'], $paymentMethod);
             $this->logger->logEvent('INFO', 'PAYMENT_SUCCESS', [
@@ -104,6 +102,103 @@ class PaymentController
                 'error_message' => $e->getMessage(),
                 'order_id' => $orderId
             ]);
+        }
+    }
+
+    public function clientSideFinalizePayment()
+    {
+        require_once __DIR__ . '/../vendor/autoload.php';
+        \Stripe\Stripe::setApiKey(STRIPE_SECRET_KEY);
+
+        $input = file_get_contents('php://input');
+        $data = json_decode($input, true);
+
+        $paymentIntentId = $data['paymentIntentId'] ?? null;
+
+        if (!$paymentIntentId) {
+            echo json_encode(['success' => false, 'error' => 'No Payment Intent ID provided.']);
+            return;
+        }
+
+        try {
+            $paymentIntent = \Stripe\PaymentIntent::retrieve($paymentIntentId);        
+            $metadata = $paymentIntent->metadata;
+            $userId = $metadata->user_id ?? null;
+            $orderId = $metadata->order_id ?? null;
+            $amount = $paymentIntent->amount_received / 100; // Amount in dollars
+
+            if ($paymentIntent->status !== 'succeeded') {
+                echo json_encode(['success' => false, 'error' => 'Payment Intent status is not succeeded.']);
+                return;
+            }
+
+            if (!$userId || !$orderId) {
+                echo json_encode(['success' => false, 'error' => 'Missing user_id or order_id in Payment Intent metadata.']);
+                return;
+            }
+
+            // Get payment method type from the associated Charge object
+            $paymentMethodType = 'unknown'; // Default value
+            if ($paymentIntent->latest_charge) {
+                try {
+                    $charge = \Stripe\Charge::retrieve($paymentIntent->latest_charge);
+                    $paymentMethodType = $charge->payment_method_details->type ?? 'unknown';
+                } catch (\Stripe\Exception\ApiErrorException $e) {
+                    $this->logger->logEvent('WARN', 'STRIPE_CHARGE_RETRIEVAL_ERROR', ['message' => $e->getMessage(), 'payment_intent_id' => $paymentIntentId, 'charge_id' => $paymentIntent->latest_charge]);
+                }
+            }
+
+            // Record payment
+            $paymentModel = new Payment();
+            $paymentRecorded = $paymentModel->record($orderId, $amount, $paymentMethodType);
+
+            if (!$paymentRecorded) {
+                // Update order status to 'Cancelled' due to payment failure
+                $orderModel = new Order();
+                $orderModel->updateStatus($orderId, 'Cancelled');
+
+                echo json_encode(['success' => false, 'error' => 'Failed to record payment.']);
+                $this->logger->logEvent('WARN', 'CLIENT_SIDE_FINALIZATION_FAIL', ['reason' => 'Failed to record payment', 'order_id' => $orderId, 'payment_intent_id' => $paymentIntentId]);
+                return;
+            }
+
+            // Deduct user balance
+            $userModel = new User();
+            $deductionResult = $userModel->deductBalance($userId, $amount);
+
+            if ($deductionResult !== 'success') {
+                // Update order status to 'Cancelled' due to payment failure
+                $orderModel = new Order();
+                $orderModel->updateStatus($orderId, 'Cancelled');
+
+                $errorMessage = 'Failed to deduct user balance.';
+                if ($deductionResult === 'insufficient_balance') {
+                    $errorMessage = 'Insufficient balance.';
+                } elseif ($deductionResult === 'user_not_found') {
+                    $errorMessage = 'User not found for balance deduction.';
+                } elseif ($deductionResult === 'db_error') {
+                    $errorMessage = 'Database error during balance deduction.';
+                }
+                echo json_encode(['success' => false, 'error' => $errorMessage]);
+                $this->logger->logEvent('WARN', 'CLIENT_SIDE_FINALIZATION_FAIL', ['reason' => $errorMessage, 'user_id' => $userId, 'amount' => $amount, 'payment_intent_id' => $paymentIntentId]);
+                return;
+            }
+
+            $this->logger->logEvent('INFO', 'CLIENT_SIDE_FINALIZATION_SUCCESS', [
+                'user_id' => $userId,
+                'order_id' => $orderId,
+                'amount' => $amount,
+                'payment_intent_id' => $paymentIntentId
+            ]);
+
+            echo json_encode(['success' => true]);
+
+        } catch (\Stripe\Exception\ApiErrorException $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+            $this->logger->logEvent('WARN', 'STRIPE_API_ERROR', ['message' => $e->getMessage(), 'payment_intent_id' => $paymentIntentId]);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'error' => 'An unexpected error occurred: ' . $e->getMessage()]);
+            $this->logger->logEvent('CRITICAL', 'UNEXPECTED_ERROR', ['message' => $e->getMessage(), 'payment_intent_id' => $paymentIntentId]);
         }
     }
 }
