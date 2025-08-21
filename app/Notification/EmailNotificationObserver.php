@@ -50,14 +50,47 @@ class EmailNotificationObserver implements NotificationObserver
     private function sendProductNotification(array $data): void
     {
         $users = $this->getAllUsers();
-        
-        foreach ($users as $user) {
-            $this->sendEmail(
-                $user->email,
-                $user->name,
-                'New Product Available - Mixue System',
-                $this->getProductEmailTemplate($data, $user->name)
-            );
+        $mail = new PHPMailer(true);
+
+        try {
+            // Server settings
+            $mail->isSMTP();
+            $mail->Host       = self::SMTP_HOST;
+            $mail->SMTPAuth   = true;
+            $mail->Username   = self::SMTP_USER;
+            $mail->Password   = self::SMTP_PASS;
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port       = self::SMTP_PORT;
+            $mail->SMTPDebug  = 0;
+            $mail->SMTPKeepAlive = true; // Keep connection open
+
+            // Set static content
+            $mail->setFrom(self::SMTP_USER, 'Mixue System');
+            $mail->isHTML(true);
+            $mail->Subject = 'New Product Available - Mixue System';
+
+            foreach ($users as $user) {
+                try {
+                    $mail->addAddress($user->email, $user->name);
+                    $mail->Body = $this->getProductEmailTemplate($data, $user->name);
+                    $mail->AltBody = strip_tags(str_replace(['<br>', '</p>'], ["\n", "\n\n"], $mail->Body));
+                    
+                    $mail->send();
+                    $this->logEmailSent($user->email, $mail->Subject);
+
+                } catch (Exception $e) {
+                    error_log("Failed to send to " . $user->email . ": " . $mail->ErrorInfo);
+                }
+                // Clear addresses for next loop
+                $mail->clearAddresses();
+            }
+        } catch (Exception $e) {
+            error_log("Email notification failed during setup: " . $mail->ErrorInfo);
+        } finally {
+            // Close the connection
+            if ($mail->SMTPKeepAlive) {
+                $mail->smtpClose();
+            }
         }
     }
     
@@ -67,14 +100,47 @@ class EmailNotificationObserver implements NotificationObserver
     private function sendBranchNotification(array $data): void
     {
         $users = $this->getAllUsers();
-        
-        foreach ($users as $user) {
-            $this->sendEmail(
-                $user->email,
-                $user->name,
-                'New Branch Opening - Mixue System',
-                $this->getBranchEmailTemplate($data, $user->name)
-            );
+        $mail = new PHPMailer(true);
+
+        try {
+            // Server settings
+            $mail->isSMTP();
+            $mail->Host       = self::SMTP_HOST;
+            $mail->SMTPAuth   = true;
+            $mail->Username   = self::SMTP_USER;
+            $mail->Password   = self::SMTP_PASS;
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port       = self::SMTP_PORT;
+            $mail->SMTPDebug  = 0;
+            $mail->SMTPKeepAlive = true; // Keep connection open
+
+            // Set static content
+            $mail->setFrom(self::SMTP_USER, 'Mixue System');
+            $mail->isHTML(true);
+            $mail->Subject = 'New Branch Opening - Mixue System';
+
+            foreach ($users as $user) {
+                try {
+                    $mail->addAddress($user->email, $user->name);
+                    $mail->Body = $this->getBranchEmailTemplate($data, $user->name);
+                    $mail->AltBody = strip_tags(str_replace(['<br>', '</p>'], ["\n", "\n\n"], $mail->Body));
+
+                    $mail->send();
+                    $this->logEmailSent($user->email, $mail->Subject);
+
+                } catch (Exception $e) {
+                    error_log("Failed to send to " . $user->email . ": " . $mail->ErrorInfo);
+                }
+                // Clear addresses for next loop
+                $mail->clearAddresses();
+            }
+        } catch (Exception $e) {
+            error_log("Email notification failed during setup: " . $mail->ErrorInfo);
+        } finally {
+            // Close the connection
+            if ($mail->SMTPKeepAlive) {
+                $mail->smtpClose();
+            }
         }
     }
     
@@ -253,4 +319,4 @@ class EmailNotificationObserver implements NotificationObserver
             error_log("Failed to log email notification: " . $e->getMessage());
         }
     }
-} 
+}
