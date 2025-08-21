@@ -159,7 +159,7 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
 
                     <li><a href="<?= BASE_URL ?>../views/locations.php">Locations</a></li>
                     <li style="margin-left:auto;"></li>
-                    <li><a href="../profile.php" class="btn-profile">My Profile</a></li>
+                    <li><a href="<?= BASE_URL ?>/profile.php" class="btn-profile">My Profile</a></li>
                     <li><a href="<?= BASE_URL ?>/views/login_logout_modules/logout.php" class="btn-logout">Logout</a></li>
                 <?php else: ?>
                     <li><a href="<?= BASE_URL ?>../views/locations.php">Locations</a></li>
