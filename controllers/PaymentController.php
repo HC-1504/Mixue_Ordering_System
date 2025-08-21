@@ -38,114 +38,72 @@ class PaymentController
     public function process()
     {
         Session::start();
+        header('Content-Type: application/json');
 
         if (!isset($_SESSION['pending_order'])) {
-            header('Location: ' . BASE_URL . '/views/menu.php');
+            echo json_encode(['error' => 'No pending order found.']);
             exit;
         }
 
-        $order = $_SESSION['pending_order'];
+        $orderData = $_SESSION['pending_order'];
+        $orderData['status'] = 'pending'; // Set initial status
+
+        $orderModel = new Order();
         $cart = $_SESSION['cart'] ?? [];
 
-        $userModel = new User();
+        if (empty($cart)) {
+            echo json_encode(['error' => 'Your cart is empty.']);
+            exit;
+        }
+
+        $orderId = $orderModel->createOrder($orderData);
+
+        if ($orderId) {
+            // Save order details immediately
+            $orderModel->addDetails($orderId, $cart);
+            $_SESSION['pending_order_id'] = $orderId;
+            echo json_encode(['success' => true, 'orderId' => $orderId]);
+        } else {
+            echo json_encode(['error' => 'Failed to create a pending order.']);
+        }
+    }
+
+    public function finalizeOrder($orderId, $paymentMethod)
+    {
         $orderModel = new Order();
+        $order = $orderModel->getOrderById($orderId);
+
+        if (!$order) {
+            $this->logger->logEvent('CRITICAL', 'FINALIZE_ORDER_FAIL', ['reason' => 'Order not found', 'order_id' => $orderId]);
+            return;
+        }
+
         $paymentModel = new Payment();
         $conn = Database::getInstance();
 
-        $user_balance = $userModel->getBalance($order['user_id']);
-        $payment_type = $_POST['payment_type'] ?? '';
+        try {
+            $conn->beginTransaction();
 
-        $payment_success = false;
-        $error = '';
+            // As requested, we will not update the order status. It will remain 'pending'.
 
-        // Log payment attempt
-        $this->logger->logEvent('INFO', 'PAYMENT_ATTEMPT', [
-            'user_id' => $order['user_id'],
-            'amount' => $order['total'],
-            'payment_method' => $payment_type,
-            'order_type' => $order['type'],
-            'branch_id' => $order['branch_id'] ?? null
-        ]);
-
-        if (empty($payment_type)) {
-            $error = 'Please select a payment method.';
-            $this->logger->logEvent('WARN', 'PAYMENT_FAIL', [
+            // Record payment
+            $paymentModel->record($orderId, $order['total'], $paymentMethod);
+            $this->logger->logEvent('INFO', 'PAYMENT_SUCCESS', [
                 'user_id' => $order['user_id'],
-                'reason' => 'No payment method selected',
-                'amount' => $order['total']
-            ]);
-        } elseif ($user_balance < $order['total']) {
-            $error = 'Insufficient balance. Please reload your wallet.';
-            $this->logger->logEvent('WARN', 'PAYMENT_FAIL', [
-                'user_id' => $order['user_id'],
-                'reason' => 'Insufficient balance',
+                'order_id' => $orderId,
                 'amount' => $order['total'],
-                'user_balance' => $user_balance
+                'payment_method' => $paymentMethod
             ]);
-        } else {
-            try {
-                $conn->beginTransaction();
 
-                // Deduct user balance
-                $userModel->deductBalance($order['user_id'], $order['total']);
-                $this->logger->logEvent('INFO', 'BALANCE_DEDUCT_SUCCESS', [
-                    'user_id' => $order['user_id'],
-                    'amount' => $order['total'],
-                    'previous_balance' => $user_balance,
-                    'new_balance' => $user_balance - $order['total']
-                ]);
-
-                // Save order
-                $orderId = $orderModel->createOrder($order);
-                if (!$orderId) {
-                    throw new Exception('Failed to create order.');
-                }
-
-                $this->logger->logEvent('INFO', 'ORDER_CREATE_SUCCESS', [
-                    'user_id' => $order['user_id'],
-                    'order_id' => $orderId,
-                    'amount' => $order['total'],
-                    'order_type' => $order['type'],
-                    'branch_id' => $order['branch_id'] ?? null,
-                    'delivery_fee' => $order['delivery_fee'] ?? 0
-                ]);
-
-                // Save order details
-                $orderModel->addDetails($orderId, $cart);
-                $this->logger->logEvent('INFO', 'ORDER_DETAILS_ADDED', [
-                    'user_id' => $order['user_id'],
-                    'order_id' => $orderId,
-                    'items_count' => count($cart)
-                ]);
-
-                // Record payment
-                $paymentModel->record($orderId, $order['total'], $payment_type);
-                $this->logger->logEvent('INFO', 'PAYMENT_SUCCESS', [
-                    'user_id' => $order['user_id'],
-                    'order_id' => $orderId,
-                    'amount' => $order['total'],
-                    'payment_method' => $payment_type
-                ]);
-
-                $conn->commit();
-
-                unset($_SESSION['cart'], $_SESSION['pending_order']);
-                $payment_success = true;
-                $user_balance = $userModel->getBalance($order['user_id']); // refresh balance
-            } catch (Exception $e) {
-                $conn->rollBack();
-                $error = 'Payment failed: ' . $e->getMessage();
-
-                $this->logger->logEvent('CRITICAL', 'PAYMENT_FAIL', [
-                    'user_id' => $order['user_id'],
-                    'reason' => 'Transaction failed',
-                    'error_message' => $e->getMessage(),
-                    'amount' => $order['total'],
-                    'payment_method' => $payment_type
-                ]);
-            }
+            $conn->commit();
+        } catch (Exception $e) {
+            $conn->rollBack();
+            $this->logger->logEvent('CRITICAL', 'FINALIZE_ORDER_FAIL', [
+                'user_id' => $order['user_id'],
+                'reason' => 'Transaction failed',
+                'error_message' => $e->getMessage(),
+                'order_id' => $orderId
+            ]);
         }
-
-        require_once __DIR__ . '/../views/payment/confirm_payment.php';
     }
 }

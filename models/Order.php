@@ -229,6 +229,13 @@ class Order
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    public function getOrderDetails(int $orderId)
+    {
+        $stmt = $this->conn->prepare("SELECT * FROM order_details WHERE order_id = ?");
+        $stmt->execute([$orderId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     /**
      * List orders with optional search/status filters and pagination (for API)
      */
@@ -310,7 +317,7 @@ class Order
     /**
      * Update an order status (for API)
      */
-    public function updateOrderStatus(int $orderId, string $newStatus): bool
+    public function updateStatus(int $orderId, string $newStatus): bool
     {
         $stmt = $this->conn->prepare("UPDATE orders SET status = ? WHERE id = ?");
         return $stmt->execute([$newStatus, $orderId]);

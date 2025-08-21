@@ -20,4 +20,5 @@ class User
         $stmt = $this->conn->prepare("UPDATE users SET balance = balance - ? WHERE id = ?");
         return $stmt->execute([$amount, $userId]);
     }
+
 }
