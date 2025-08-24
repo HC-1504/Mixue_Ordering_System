@@ -173,7 +173,7 @@ function handlePutRequest() {
             return;
         }
         
-        $result = $orderModel->updateOrderStatus($orderId, $newStatus);
+        $result = $orderModel->updateStatus($orderId, $newStatus);
         
         if ($result) {
             echo json_encode([
