@@ -121,74 +121,80 @@ class PaymentController
         }
 
         try {
-            $paymentIntent = \Stripe\PaymentIntent::retrieve($paymentIntentId);        
+            $paymentIntent = \Stripe\PaymentIntent::retrieve($paymentIntentId);
             $metadata = $paymentIntent->metadata;
             $userId = $metadata->user_id ?? null;
             $orderId = $metadata->order_id ?? null;
-            $amount = $paymentIntent->amount_received / 100; // Amount in dollars
-
-            if ($paymentIntent->status !== 'succeeded') {
-                echo json_encode(['success' => false, 'error' => 'Payment Intent status is not succeeded.']);
-                return;
-            }
+            $amount = $paymentIntent->amount / 100; // Amount from Stripe is in cents
 
             if (!$userId || !$orderId) {
                 echo json_encode(['success' => false, 'error' => 'Missing user_id or order_id in Payment Intent metadata.']);
                 return;
             }
 
+            $userModel = new User();
+            $orderModel = new Order();
+            $paymentModel = new Payment();
+
+            // Check sufficient balance
+            $currentBalance = $userModel->getBalance($userId);
+            if ($currentBalance < $amount) {
+                $orderModel->updateStatus($orderId, 'Cancelled');
+                echo json_encode(['success' => false, 'error' => 'Insufficient balance.']);
+                $this->logger->logEvent('WARN', 'CLIENT_SIDE_FINALIZATION_FAIL', ['reason' => 'Insufficient balance', 'order_id' => $orderId, 'payment_intent_id' => $paymentIntentId]);
+                return;
+            }
+
+            // Deduct balance from user account
+            $deductionResult = $userModel->deductBalance($userId, $amount);
+
+            if ($deductionResult !== true) {
+                $orderModel->updateStatus($orderId, 'Cancelled');
+                $errorMessage = 'Failed to deduct user balance.';
+                echo json_encode(['success' => false, 'error' => $errorMessage]);
+                $this->logger->logEvent('WARN', 'CLIENT_SIDE_FINALIZATION_FAIL', ['reason' => $errorMessage, 'user_id' => $userId, 'amount' => $amount, 'payment_intent_id' => $paymentIntentId]);
+                return;
+            }
+
             // Get payment method type from the associated Charge object
-            $paymentMethodType = 'unknown'; // Default value
+            $paymentMethodType = 'Others'; // Default value
             if ($paymentIntent->latest_charge) {
                 try {
                     $charge = \Stripe\Charge::retrieve($paymentIntent->latest_charge);
-                    $paymentMethodType = $charge->payment_method_details->type ?? 'unknown';
+                    $paymentMethodType = $charge->payment_method_details->type ?? 'Others';
                 } catch (\Stripe\Exception\ApiErrorException $e) {
                     $this->logger->logEvent('WARN', 'STRIPE_CHARGE_RETRIEVAL_ERROR', ['message' => $e->getMessage(), 'payment_intent_id' => $paymentIntentId, 'charge_id' => $paymentIntent->latest_charge]);
                 }
             }
 
             // Record payment
-            $paymentModel = new Payment();
             $paymentRecorded = $paymentModel->record($orderId, $amount, $paymentMethodType);
 
             if (!$paymentRecorded) {
-                // Update order status to 'Cancelled' due to payment failure
-                $orderModel = new Order();
+                // This is a critical issue. The balance was deducted, but payment was not recorded.
+                // We need to refund the user and log this as a critical error.
+                $userModel->addBalance($userId, $amount); // Refund user
                 $orderModel->updateStatus($orderId, 'Cancelled');
-
-                echo json_encode(['success' => false, 'error' => 'Failed to record payment.']);
-                $this->logger->logEvent('WARN', 'CLIENT_SIDE_FINALIZATION_FAIL', ['reason' => 'Failed to record payment', 'order_id' => $orderId, 'payment_intent_id' => $paymentIntentId]);
+                echo json_encode(['success' => false, 'error' => 'Failed to record payment. Your balance has been restored.']);
+                $this->logger->logEvent('CRITICAL', 'PAYMENT_RECORDING_FAIL_AFTER_DEDUCTION', [
+                    'reason' => 'Failed to record payment after balance deduction. User refunded.',
+                    'user_id' => $userId,
+                    'order_id' => $orderId,
+                    'amount' => $amount,
+                    'payment_intent_id' => $paymentIntentId
+                ]);
                 return;
             }
 
-            // Deduct user balance
-            $userModel = new User();
-            $deductionResult = $userModel->deductBalance($userId, $amount);
-
-            if ($deductionResult !== 'success') {
-                // Update order status to 'Cancelled' due to payment failure
-                $orderModel = new Order();
-                $orderModel->updateStatus($orderId, 'Cancelled');
-
-                $errorMessage = 'Failed to deduct user balance.';
-                if ($deductionResult === 'insufficient_balance') {
-                    $errorMessage = 'Insufficient balance.';
-                } elseif ($deductionResult === 'user_not_found') {
-                    $errorMessage = 'User not found for balance deduction.';
-                } elseif ($deductionResult === 'db_error') {
-                    $errorMessage = 'Database error during balance deduction.';
-                }
-                echo json_encode(['success' => false, 'error' => $errorMessage]);
-                $this->logger->logEvent('WARN', 'CLIENT_SIDE_FINALIZATION_FAIL', ['reason' => $errorMessage, 'user_id' => $userId, 'amount' => $amount, 'payment_intent_id' => $paymentIntentId]);
-                return;
-            }
+            // Finalize order
+            $orderModel->updateStatus($orderId, 'Pending');
 
             $this->logger->logEvent('INFO', 'CLIENT_SIDE_FINALIZATION_SUCCESS', [
                 'user_id' => $userId,
                 'order_id' => $orderId,
                 'amount' => $amount,
-                'payment_intent_id' => $paymentIntentId
+                'payment_intent_id' => $paymentIntentId,
+                'payment_method' => $paymentMethodType
             ]);
 
             echo json_encode(['success' => true]);

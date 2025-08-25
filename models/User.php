@@ -21,4 +21,9 @@ class User
         return $stmt->execute([$amount, $userId]);
     }
 
+    public function addBalance($userId, $amount)
+    {
+        $stmt = $this->conn->prepare("UPDATE users SET balance = balance + ? WHERE id = ?");
+        return $stmt->execute([$amount, $userId]);
+    }
 }

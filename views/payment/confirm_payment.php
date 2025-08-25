@@ -16,7 +16,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <h3 class="mb-0">Your Current Balance: RM <?= number_format($user_balance, 2) ?></h3>
         </div>
 
-        <form id="payment-form">
+                <form id="payment-form">
             <div id="payment-element" class="mb-3">
                 <!-- A Stripe Payment Element will be inserted here. -->
             </div>
@@ -104,7 +104,9 @@ require_once __DIR__ . '/../../includes/header.php';
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ paymentIntentId: paymentIntentId })
+                    body: JSON.stringify({
+                        paymentIntentId: paymentIntentId
+                    })
                 });
                 const result = await response.json();
 

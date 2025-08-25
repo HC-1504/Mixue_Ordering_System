@@ -9,7 +9,10 @@ require_once __DIR__ . '/../../includes/header.php';
         <input type="hidden" name="_csrf" value="<?= Session::generateCsrfToken() ?>">
         <div class="mb-3">
             <label for="phone" class="form-label">Phone Number</label>
-            <input type="text" name="phone" id="phone" class="form-control" required>
+            <input type="tel" name="phone" id="phone" class="form-control" required maxlength="20" minlength="5">
+            <div id="phone-error" class="invalid-feedback">
+                Please enter a valid phone number (no letters).
+            </div>
         </div>
 
         <?php if ($type === 'delivery'): ?>
@@ -44,6 +47,26 @@ require_once __DIR__ . '/../../includes/header.php';
         <a href="<?= BASE_URL ?>/routes/cart.php" class="btn btn-secondary">← Back to Cart</a>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const phoneInput = document.getElementById('phone');
+    const phoneError = document.getElementById('phone-error');
+
+    phoneInput.addEventListener('input', function() {
+        // Remove any non-digit characters except for +, -, and space
+        phoneInput.value = phoneInput.value.replace(/[^0-9+\-\s]/g, '');
+
+        if (phoneInput.value.length < 5) {
+            phoneInput.classList.add('is-invalid');
+            phoneError.style.display = 'block';
+        } else {
+            phoneInput.classList.remove('is-invalid');
+            phoneError.style.display = 'none';
+        }
+    });
+});
+</script>
 
 <?php
 require_once __DIR__ . '/../../includes/footer.php';
