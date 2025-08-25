@@ -8,16 +8,17 @@ class Reload
     {
         $this->pdo = Database::getInstance();
     }
-    public function addReload($userId, $amount, $paymentMethodType)
+    public function addReload($userId, $amount, $paymentType = null)
     {
         $stmt = $this->pdo->prepare('INSERT INTO reloads (user_id, amount, payment_type, created_at) VALUES (?, ?, ?, NOW())');
-        $result = $stmt->execute([$userId, $amount, $paymentMethodType]);
+        $result = $stmt->execute([$userId, $amount, $paymentType]);
         if ($result) {
             // Insert into security_logs
             $logStmt = $this->pdo->prepare('INSERT INTO security_logs (user_id, ip_address, level, event_type, message, created_at) VALUES (?, ?, ?, ?, ?, NOW())');
             $ip = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
             $msg = json_encode([
                 'amount' => $amount,
+                'payment_type' => $paymentType,
                 'timestamp' => date('Y-m-d H:i:s')
             ]);
             $logStmt->execute([$userId, $ip, 'INFO', 'RELOAD', $msg]);

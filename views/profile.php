@@ -39,12 +39,8 @@ require_once __DIR__ . '/../includes/header.php';
                 RM <?= number_format($user->balance ?? 0, 2) ?>
             </div>
             <div class="d-flex justify-content-center gap-2 mb-2">
-                <form action="<?= BASE_URL ?>/reload.php" method="GET" style="display: inline;">
-                    <button type="submit" class="btn btn-success btn-lg"><i class="fas fa-wallet"></i> Reload Money</button>
-                </form>
-                <form action="<?= BASE_URL ?>/change_password.php" method="GET" style="display: inline;">
-                    <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-key"></i> Change Password</button>
-                </form>
+                <a href="<?= BASE_URL ?>/reload.php" class="btn btn-success btn-lg"><i class="fas fa-wallet"></i> Reload Money</a>
+                <a href="<?= BASE_URL ?>/views/change_password.php" class="btn btn-primary btn-lg"><i class="fas fa-key"></i> Change Password</a>
             </div>
         </div>
     </div>
@@ -104,12 +100,8 @@ require_once __DIR__ . '/../includes/header.php';
                                 <td><?= number_format($order['total'] ?? 0, 2) ?></td>
                                 <td><?= htmlspecialchars($order['status'] ?? '-') ?></td>
                                 <td>
-                                    <?php if (($order['status'] ?? '-') !== 'Cancelled'): ?>
-                                        <a href="<?= BASE_URL ?>/routes/order_details.php?id=<?= urlencode($order['id']) ?>" class="btn btn-warning btn-sm">View Details</a>
-                                        <button class="btn btn-info btn-sm reorder-btn" data-order-id="<?= $order['id'] ?>">Re-order</button>
-                                    <?php else: ?>
-                                        <span class="text-muted">N/A</span>
-                                    <?php endif; ?>
+                                    <a href="<?= BASE_URL ?>/routes/order_details.php?id=<?= urlencode($order['id']) ?>" class="btn btn-warning btn-sm">View Details</a>
+                                    <button class="btn btn-info btn-sm reorder-btn" data-order-id="<?= $order['id'] ?>">Re-order</button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

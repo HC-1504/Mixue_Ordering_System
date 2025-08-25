@@ -323,21 +323,21 @@ CREATE TABLE `reloads` (
   `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `amount` decimal(10,2) NOT NULL,
-  `payment_intent_id` varchar(255) DEFAULT NULL,
-  `created_at` datetime NOT NULL
+  `created_at` datetime NOT NULL,
+  `payment_type` varchar(50) NOT NULL DEFAULT 'Others'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `reloads`
 --
 
-INSERT INTO `reloads` (`id`, `user_id`, `amount`, `created_at`) VALUES
-(1, 1, 50.00, '2025-07-21 22:29:16'),
-(2, 1, 1.20, '2025-07-21 22:42:42'),
-(3, 1, 2.30, '2025-07-22 00:06:18'),
-(4, 5, 100.00, '2025-07-23 04:14:45'),
-(5, 5, 100.00, '2025-07-23 20:01:48'),
-(6, 8, 200.00, '2025-07-30 21:10:33');
+INSERT INTO `reloads` (`id`, `user_id`, `amount`, `created_at`, `payment_type`) VALUES
+(1, 1, 50.00, '2025-07-21 22:29:16', 'Others'),
+(2, 1, 1.20, '2025-07-21 22:42:42', 'Others'),
+(3, 1, 2.30, '2025-07-22 00:06:18', 'Others'),
+(4, 5, 100.00, '2025-07-23 04:14:45', 'Others'),
+(5, 5, 100.00, '2025-07-23 20:01:48', 'Others'),
+(6, 8, 200.00, '2025-07-30 21:10:33', 'Others');
 
 -- --------------------------------------------------------
 
