@@ -49,23 +49,23 @@ require_once __DIR__ . '/../../includes/header.php';
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const phoneInput = document.getElementById('phone');
-    const phoneError = document.getElementById('phone-error');
+    document.addEventListener('DOMContentLoaded', function() {
+        const phoneInput = document.getElementById('phone');
+        const phoneError = document.getElementById('phone-error');
 
-    phoneInput.addEventListener('input', function() {
-        // Remove any non-digit characters except for +, -, and space
-        phoneInput.value = phoneInput.value.replace(/[^0-9+\-\s]/g, '');
+        phoneInput.addEventListener('input', function() {
+            // Remove any non-digit characters except for +, -, and space
+            phoneInput.value = phoneInput.value.replace(/[^0-9+\-\s]/g, '');
 
-        if (phoneInput.value.length < 5) {
-            phoneInput.classList.add('is-invalid');
-            phoneError.style.display = 'block';
-        } else {
-            phoneInput.classList.remove('is-invalid');
-            phoneError.style.display = 'none';
-        }
+            if (phoneInput.value.length < 5) {
+                phoneInput.classList.add('is-invalid');
+                phoneError.style.display = 'block';
+            } else {
+                phoneInput.classList.remove('is-invalid');
+                phoneError.style.display = 'none';
+            }
+        });
     });
-});
 </script>
 
 <?php

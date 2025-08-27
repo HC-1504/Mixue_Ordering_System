@@ -49,13 +49,13 @@ if (isset($_GET['added'])): ?>
                 <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab" aria-controls="all" aria-selected="true">All Products</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="ice-cream-tab" data-bs-toggle="tab" data-bs-target="#ice-cream" type="button" role="tab" aria-controls="ice-cream" aria-selected="false">Fresh Ice Cream and Tea</button>
+                <button class="nav-link" id="ice-cream-tab" data-bs-toggle="tab" data-bs-target="#ice-cream" type="button" role="tab" aria-controls="ice-cream" aria-selected="false">Ice Cream</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="milk-tea-tab" data-bs-toggle="tab" data-bs-target="#milk-tea" type="button" role="tab" aria-controls="milk-tea" aria-selected="false">Milk Tea</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="fresh-tea-tab" data-bs-toggle="tab" data-bs-target="#fresh-tea" type="button" role="tab" aria-controls="fresh-tea" aria-selected="false">Fresh Tea</button>
+                <button class="nav-link" id="fruit-drink-tab" data-bs-toggle="tab" data-bs-target="#fruit-drink" type="button" role="tab" aria-controls="fruit-drink" aria-selected="false">Fruit Drink</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="coffee-tab" data-bs-toggle="tab" data-bs-target="#coffee" type="button" role="tab" aria-controls="coffee" aria-selected="false">Coffee</button>
@@ -141,8 +141,8 @@ if (isset($_GET['added'])): ?>
             </div>
         </div>
 
-        <!-- Fresh Tea Tab -->
-        <div class="tab-pane fade" id="fresh-tea" role="tabpanel" aria-labelledby="fresh-tea-tab">
+        <!-- Fruit Drink Tab -->
+        <div class="tab-pane fade" id="fruit-drink" role="tabpanel" aria-labelledby="fruit-drink-tab">
             <div class="row">
                 <?php foreach ($products as $row): ?>
                     <?php if (stripos($row['category_name'] ?? '', 'fruit drink') !== false): ?>
@@ -152,7 +152,7 @@ if (isset($_GET['added'])): ?>
                                 <div class="card-body">
                                     <h5 class="card-title"><?= htmlspecialchars($row['name']) ?></h5>
                                     <p class="card-text">RM <?= number_format($row['price'], 2) ?></p>
-                                    <small class="text-muted">Category: <?= htmlspecialchars($row['category_name'] ?? 'Fresh Tea') ?></small><br><br>
+                                    <small class="text-muted">Category: <?= htmlspecialchars($row['category_name'] ?? 'Fruit Drink') ?></small><br><br>
                                     <button
                                         class="btn btn-primary add-to-cart-btn"
                                         data-id="<?php echo $row['id']; ?>"

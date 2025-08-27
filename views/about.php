@@ -86,14 +86,14 @@ require_once '../includes/header.php';
         </div>
         <div class="company-card">
             <!-- <img src="<?= BASE_URL ?>/assets/images/mixue-logo.png" alt="Shangdao Smart Supply Chain Co., Ltd."> -->
-<h4>Shangdao Smart Supply Chain Co., Ltd.</h4>
+            <h4>Shangdao Smart Supply Chain Co., Ltd.</h4>
             <p>Provides state-of-the-art warehousing and logistics services, making sure fresh ingredients reach every store quickly and efficiently.</p>
         </div>
     </div>
 </div>
 
 
-<?php 
+<?php
 // Include the standard website footer
-require_once '../includes/footer.php'; 
+require_once '../includes/footer.php';
 ?>
