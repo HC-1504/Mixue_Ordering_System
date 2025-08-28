@@ -64,6 +64,18 @@ class OrderController
             $phone = trim($_POST['phone'] ?? '');
             $address = $type === 'delivery' ? trim($_POST['address'] ?? '') : null;
             $branch_id = $_POST['branch_id'] ?? null;
+            $latitude = $_POST['latitude'] ?? null;
+            $longitude = $_POST['longitude'] ?? null;
+
+            // If location is provided for a delivery order, find the nearest branch and override the selection.
+            if ($type === 'delivery' && $latitude && $longitude) {
+                require_once __DIR__ . '/../models/Branch.php';
+                $branchModel = new Branch();
+                $nearestBranch = $branchModel->findNearestBranch(floatval($latitude), floatval($longitude));
+                if ($nearestBranch) {
+                    $branch_id = $nearestBranch['id']; // Server overrides the branch choice.
+                }
+            }
 
             // Calculate total from cart items
             $subtotal = $orderModel->calculateSubtotal($cart);

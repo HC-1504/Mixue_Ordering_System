@@ -28,8 +28,12 @@ require_once __DIR__ . '/../../includes/header.php';
         <?php if ($type === 'delivery'): ?>
             <div class="mb-3">
                 <label for="address" class="form-label">Delivery Address</label>
+                <button type="button" id="use-location-btn" class="btn btn-secondary btn-sm mb-2">Use My Current Location</button>
                 <textarea name="address" id="address" class="form-control" required></textarea>
+                <small id="location-status" class="form-text text-muted"></small>
             </div>
+            <input type="hidden" name="latitude" id="latitude">
+            <input type="hidden" name="longitude" id="longitude">
         <?php endif; ?>
 
         <button type="submit" class="btn btn-primary w-100">Place Order</button>
@@ -65,6 +69,68 @@ require_once __DIR__ . '/../../includes/header.php';
                 phoneError.style.display = 'none';
             }
         });
+
+        <?php if ($type === 'delivery'): ?>
+        const useLocationBtn = document.getElementById('use-location-btn');
+        const branchSelect = document.getElementById('branch_id');
+        const latInput = document.getElementById('latitude');
+        const lonInput = document.getElementById('longitude');
+        const statusText = document.getElementById('location-status');
+
+        useLocationBtn.addEventListener('click', function() {
+            if (!navigator.geolocation) {
+                statusText.textContent = 'Geolocation is not supported by your browser.';
+                return;
+            }
+
+            statusText.textContent = 'Getting your location...';
+
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+
+                latInput.value = lat;
+                lonInput.value = lon;
+
+                statusText.textContent = `Location found. Fetching details...`;
+
+                const reverseGeocodePromise = fetch(`<?= BASE_URL ?>/api/reverse_geocode.php?latitude=${lat}&longitude=${lon}`).then(res => res.json());
+                const findBranchPromise = fetch(`<?= BASE_URL ?>/api/find_nearest_branch.php?latitude=${lat}&longitude=${lon}`).then(res => res.json());
+
+                Promise.all([reverseGeocodePromise, findBranchPromise])
+                    .then(([addressData, branchData]) => {
+                        let finalStatus = '';
+
+                        // Handle address
+                        if (addressData.error) {
+                            finalStatus += 'Could not fetch address. ';
+                        } else {
+                            const addressInput = document.getElementById('address');
+                            addressInput.value = addressData.address;
+                            finalStatus += 'Address filled. ';
+                        }
+
+                        // Handle branch
+                        if (branchData.error) {
+                            finalStatus += 'Could not find a nearby branch.';
+                        } else {
+                            branchSelect.value = branchData.id;
+                            const distance = parseFloat(branchData.distance_km).toFixed(1);
+                            finalStatus += `Nearest branch: ${branchData.name} (${distance} km away).`;
+                        }
+
+                        statusText.textContent = finalStatus;
+                    })
+                    .catch(error => {
+                        statusText.textContent = 'An error occurred while fetching location details.';
+                        console.error('Error during location fetch:', error);
+                    });
+
+            }, function() {
+                statusText.textContent = 'Unable to retrieve your location. Please grant permission.';
+            });
+        });
+        <?php endif; ?>
     });
 </script>
 
