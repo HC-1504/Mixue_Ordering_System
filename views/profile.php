@@ -87,7 +87,8 @@ require_once __DIR__ . '/../includes/header.php';
                         <tr>
                             <th>Date</th>
                             <th>Type</th>
-                            <th>Total (RM)</th>
+                            <th>Order Code</th>
+                            <th>Branch</th>
                             <th>Status</th>
                             <th>Action</th>
                         </tr>
@@ -97,7 +98,14 @@ require_once __DIR__ . '/../includes/header.php';
                             <tr>
                                 <td><?= htmlspecialchars($order['created_at'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars($order['type'] ?? '-') ?></td>
-                                <td><?= number_format($order['total'] ?? 0, 2) ?></td>
+                                <td>
+                                    <?php if (!empty($order['daily_sequence'])): ?>
+                                        <strong>#<?= htmlspecialchars($order['daily_sequence']) ?></strong>
+                                    <?php else: ?>
+                                        <span class="text-muted">N/A</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?= htmlspecialchars($order['branch_name'] ?? 'N/A') ?></td>
                                 <td><?= htmlspecialchars($order['status'] ?? '-') ?></td>
                                 <td>
                                     <?php if (($order['status'] ?? '-') !== 'Cancelled'): ?>

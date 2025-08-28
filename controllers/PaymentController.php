@@ -38,6 +38,18 @@ class PaymentController
     public function process()
     {
         Session::start();
+
+        $payment_method = $_GET['method'] ?? 'stripe';
+
+        if ($payment_method === 'wallet') {
+            $this->processWalletPayment();
+        } else {
+            $this->processStripePayment();
+        }
+    }
+
+    private function processStripePayment()
+    {
         header('Content-Type: application/json');
 
         if (!isset($_SESSION['pending_order'])) {
@@ -65,6 +77,43 @@ class PaymentController
             echo json_encode(['success' => true, 'orderId' => $orderId]);
         } else {
             echo json_encode(['error' => 'Failed to create a pending order.']);
+        }
+    }
+
+    private function processWalletPayment()
+    {
+        header('Content-Type: application/json');
+
+        if (!isset($_SESSION['pending_order'])) {
+            echo json_encode(['success' => false, 'error' => 'No pending order found.']);
+            exit;
+        }
+
+        $orderData = $_SESSION['pending_order'];
+        $userModel = new User();
+        $user_balance = $userModel->getBalance($orderData['user_id']);
+
+        if ($user_balance < $orderData['total']) {
+            echo json_encode(['success' => false, 'error' => 'Insufficient balance.']);
+            exit;
+        }
+
+        $orderModel = new Order();
+        $orderId = $orderModel->createOrder($orderData);
+
+        if ($orderId) {
+            $orderModel->addDetails($orderId, $_SESSION['cart']);
+            $userModel->deductBalance($orderData['user_id'], $orderData['total']);
+            $this->finalizeOrder($orderId, 'Mixue Wallet');
+
+            unset($_SESSION['pending_order']);
+            unset($_SESSION['cart']);
+
+            echo json_encode(['success' => true, 'orderId' => $orderId]);
+            exit;
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Failed to create order.']);
+            exit;
         }
     }
 
@@ -145,17 +194,6 @@ class PaymentController
                 return;
             }
 
-            // Deduct balance from user account
-            $deductionResult = $userModel->deductBalance($userId, $amount);
-
-            if ($deductionResult !== true) {
-                $orderModel->updateStatus($orderId, 'Cancelled');
-                $errorMessage = 'Failed to deduct user balance.';
-                echo json_encode(['success' => false, 'error' => $errorMessage]);
-                $this->logger->logEvent('WARN', 'CLIENT_SIDE_FINALIZATION_FAIL', ['reason' => $errorMessage, 'user_id' => $userId, 'amount' => $amount, 'payment_intent_id' => $paymentIntentId]);
-                return;
-            }
-
             // Get payment method type from the associated Charge object
             $paymentMethodType = 'Others'; // Default value
             if ($paymentIntent->latest_charge) {
@@ -198,7 +236,6 @@ class PaymentController
             ]);
 
             echo json_encode(['success' => true]);
-
         } catch (\Stripe\Exception\ApiErrorException $e) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
             $this->logger->logEvent('WARN', 'STRIPE_API_ERROR', ['message' => $e->getMessage(), 'payment_intent_id' => $paymentIntentId]);

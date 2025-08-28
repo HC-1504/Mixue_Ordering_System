@@ -51,11 +51,8 @@ class OrderController
         $total = $subtotal + $deliveryFee; // Needed for view display
 
 
-        // Step 2: Get branches only if pickup
-        $branches = [];
-        if ($type === 'pickup') {
-            $branches = $orderModel->getBranches();
-        }
+        // Step 2: Get branches for all order types
+        $branches = $orderModel->getBranches();
 
         // Step 3: Handle form submission
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -65,8 +62,8 @@ class OrderController
 
             $user_id = $_SESSION['user_id'] ?? null;
             $phone = trim($_POST['phone'] ?? '');
-            $address = $type === 'delivery' ? trim($_POST['address'] ?? '') : '';
-            $branch_id = $type === 'pickup' ? ($_POST['branch_id'] ?? null) : null;
+            $address = $type === 'delivery' ? trim($_POST['address'] ?? '') : null;
+            $branch_id = $_POST['branch_id'] ?? null;
 
             // Calculate total from cart items
             $subtotal = $orderModel->calculateSubtotal($cart);

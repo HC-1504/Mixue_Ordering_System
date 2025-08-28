@@ -6,29 +6,32 @@ require_once __DIR__ . '/../../models/Product.php';
 require_once __DIR__ . '/../../models/Category.php';
 require_once __DIR__ . '/../../models/Branch.php'; // <<< NEW REQUIRE
 
-class ReportController {
+class ReportController
+{
     private $orderModel;
     private $productModel;
     private $categoryModel;
     private $branchModel; // <<< NEW PROPERTY
     private $apiBaseUrl;
-    
-    public function __construct() {
+
+    public function __construct()
+    {
         $this->orderModel = new Order();
         $this->productModel = new Product();
         $this->categoryModel = new Category();
         $this->branchModel = new Branch(); // <<< INITIALIZE NEW MODEL
         $this->apiBaseUrl = 'http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/Assignment/api/admin';
     }
-    
-    public function index() {
+
+    public function index()
+    {
         // Check admin permissions
         if (!in_array(Session::get('user_role'), ['admin', 'manager'])) {
             Session::set('report_errors', ['You do not have permission to access reports.']);
             header('Location: dashboard.php');
             exit();
         }
-        
+
         $page_title = 'Reports Dashboard';
         $branches = $this->branchModel->getAllBranches(); // <<< FETCH BRANCHES FOR DROPDOWN
         if ($branches === false) {
@@ -38,26 +41,25 @@ class ReportController {
         
         require_once __DIR__ . '/../../views/admin/reports/index.php';
     }
-    
+
     /**
      * Generate sales report by consuming Order API
      */
-    public function generateSalesReport($startDate = null, $endDate = null, $branchId = null) { // <<< ADD $branchId
+    public function generateSalesReport($startDate = null, $endDate = null, $branchId = null) {
         try {
             // For now, use direct database access to ensure it works
             // TODO: Re-enable API consumption once we debug the session issue
-            $ordersData = $this->getOrdersFromDatabase($branchId); // <<< PASS $branchId
-            
+            $ordersData = $this->getOrdersFromDatabase($branchId);
             if (!$ordersData || $ordersData['status'] !== 'success') {
                 throw new Exception('Failed to fetch orders data');
             }
 
             $orders = $ordersData['data']['orders'];
-            
+
             // Filter orders by date if provided
             if ($startDate && $endDate) {
                 $originalCount = count($orders);
-                $orders = array_filter($orders, function($order) use ($startDate, $endDate) {
+                $orders = array_filter($orders, function ($order) use ($startDate, $endDate) {
                     $orderDate = date('Y-m-d', strtotime($order['created_at']));
                     return $orderDate >= $startDate && $orderDate <= $endDate;
                 });
@@ -69,25 +71,22 @@ class ReportController {
                  error_log("Sales Report - Branch filter: {$branchId}");
             }
 
-
             // Calculate sales metrics
             $totalSales = 0;
             $totalOrders = count($orders);
             $statusCounts = [];
             $dailySales = [];
-            $completeOrder=0;
+            $completedOrdersCount = 0;
 
             foreach ($orders as $order) {
-                if($order['status']!='Cancelled'){
+                if ($order['status'] === 'Completed' || $order['status'] === 'Delivered') {
                     $totalSales += (float)$order['total'];
-                    $completeOrder++;
+                    $completedOrdersCount++;
                 }
-                
-                
                 // Count by status
                 $status = $order['status'];
                 $statusCounts[$status] = ($statusCounts[$status] ?? 0) + 1;
-                
+
                 // Group by date
                 $date = date('Y-m-d', strtotime($order['created_at']));
                 $dailySales[$date] = ($dailySales[$date] ?? 0) + (float)$order['total'];
@@ -97,7 +96,7 @@ class ReportController {
             ksort($dailySales);
 
             // Calculate average order value
-            $averageOrderValue=$completeOrder>0?$totalSales/$completeOrder:0;
+            $averageOrderValue = $completedOrdersCount > 0 ? $totalSales / $completedOrdersCount : 0;
 
             return [
                 'status' => 'success',
@@ -115,7 +114,6 @@ class ReportController {
                     'branch_id' => $branchId // <<< RETURN SELECTED BRANCH
                 ]
             ];
-
         } catch (Exception $e) {
             return [
                 'status' => 'error',
@@ -127,22 +125,21 @@ class ReportController {
     /**
      * Generate order status report
      */
-    public function generateOrderStatusReport($startDate = null, $endDate = null, $branchId = null) { // <<< ADD $branchId
+    public function generateOrderStatusReport($startDate = null, $endDate = null, $branchId = null) {
         try {
             // For now, use direct database access to ensure it works
             // TODO: Re-enable API consumption once we debug the session issue
-            $ordersData = $this->getOrdersFromDatabase($branchId); // <<< PASS $branchId
-            
+            $ordersData = $this->getOrdersFromDatabase($branchId);
             if (!$ordersData || $ordersData['status'] !== 'success') {
                 throw new Exception('Failed to fetch orders data');
             }
 
             $orders = $ordersData['data']['orders'];
-            
+
             // Filter orders by date if provided
             if ($startDate && $endDate) {
                 $originalCount = count($orders);
-                $orders = array_filter($orders, function($order) use ($startDate, $endDate) {
+                $orders = array_filter($orders, function ($order) use ($startDate, $endDate) {
                     $orderDate = date('Y-m-d', strtotime($order['created_at']));
                     return $orderDate >= $startDate && $orderDate <= $endDate;
                 });
@@ -153,7 +150,6 @@ class ReportController {
             if ($branchId) {
                 error_log("Status Report - Branch filter: {$branchId}");
             }
-            
             $statusReport = [];
             $totalOrders = count($orders);
 
@@ -166,7 +162,7 @@ class ReportController {
                         'total_value' => 0
                     ];
                 }
-                
+
                 $statusReport[$status]['count']++;
                 $statusReport[$status]['total_value'] += (float)$order['total'];
             }
@@ -183,7 +179,6 @@ class ReportController {
                     'status_breakdown' => $statusReport
                 ]
             ];
-
         } catch (Exception $e) {
             return [
                 'status' => 'error',
@@ -195,10 +190,11 @@ class ReportController {
     /**
      * Consume Order API to get orders data
      */
-    private function consumeOrderAPI($filters = []) {
+    private function consumeOrderAPI($filters = [])
+    {
         // Use explicit .php endpoint for compatibility on environments without URL rewriting
         $url = $this->apiBaseUrl . '/orders.php';
-        
+
         // Add query parameters
         if (!empty($filters)) {
             $url .= '?' . http_build_query($filters);
@@ -211,18 +207,18 @@ class ReportController {
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_TIMEOUT, 5); // Further reduced timeout for faster fallback
-        
+
         // Set headers
         $headers = [
             'Content-Type: application/json',
             'Accept: application/json',
         ];
-        
+
         // Add session cookie if available
         if (isset($_SERVER['HTTP_COOKIE'])) {
             $headers[] = 'Cookie: ' . $_SERVER['HTTP_COOKIE'];
         }
-        
+
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
         // Execute request
@@ -253,29 +249,30 @@ class ReportController {
     /**
      * Get specific order details from API
      */
-    public function getOrderDetailsFromAPI($orderId) {
+    public function getOrderDetailsFromAPI($orderId)
+    {
         try {
             // Support .php endpoint and id via query parameter
             $url = $this->apiBaseUrl . '/orders.php?id=' . urlencode($orderId);
-            
+
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-            
+
             // Set headers
             $headers = [
                 'Content-Type: application/json',
                 'Accept: application/json',
             ];
-            
+
             // Add session cookie if available
             if (isset($_SERVER['HTTP_COOKIE'])) {
                 $headers[] = 'Cookie: ' . $_SERVER['HTTP_COOKIE'];
             }
-            
+
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
             $response = curl_exec($ch);
@@ -297,7 +294,6 @@ class ReportController {
             }
 
             return $data;
-
         } catch (Exception $e) {
             return [
                 'status' => 'error',
@@ -309,21 +305,20 @@ class ReportController {
     /**
      * Fallback method to get orders directly from database if API fails
      */
-    private function getOrdersFromDatabase($branchId = null) { // <<< ADD $branchId
+    private function getOrdersFromDatabase($branchId = null) {
         try {
             // Check if orderModel is properly initialized
             if (!$this->orderModel) {
                 throw new Exception('Order model not initialized');
             }
-            
+
             // Try to get orders with error handling
-            // <<< PASS $branchId TO MODEL'S FILTER METHOD
-            $orders = $this->orderModel->getAllOrdersWithFilters('', '', 1000, 0, $branchId); 
-            
+            // Pass $branchId to model's filter method
+            $orders = $this->orderModel->getAllOrdersWithFilters('', '', 1000, 0, $branchId);
             if ($orders === false) {
                 throw new Exception('Failed to retrieve orders from database');
             }
-            
+
             return [
                 'status' => 'success',
                 'data' => [
@@ -348,16 +343,16 @@ class ReportController {
     /**
      * Generate comprehensive business report
      */
-    public function generateBusinessReport($startDate = null, $endDate = null, $branchId = null) { // <<< ADD $branchId
+    public function generateBusinessReport($startDate = null, $endDate = null, $branchId = null) {
         try {
             // Get sales report with date filter
-            $salesReport = $this->generateSalesReport($startDate, $endDate, $branchId); // <<< PASS $branchId
+            $salesReport = $this->generateSalesReport($startDate, $endDate, $branchId);
             if ($salesReport['status'] === 'error') {
                 throw new Exception($salesReport['message']);
             }
 
             // Get order status report with date filter
-            $statusReport = $this->generateOrderStatusReport($startDate, $endDate, $branchId); // <<< PASS $branchId
+            $statusReport = $this->generateOrderStatusReport($startDate, $endDate, $branchId);
             if ($statusReport['status'] === 'error') {
                 throw new Exception($statusReport['message']);
             }
@@ -378,10 +373,9 @@ class ReportController {
                         'start' => $startDate,
                         'end' => $endDate
                     ],
-                    'branch_id' => $branchId // <<< RETURN SELECTED BRANCH
+                    'branch_id' => $branchId
                 ]
             ];
-
         } catch (Exception $e) {
             return [
                 'status' => 'error',
