@@ -3,7 +3,6 @@ require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../models/Order.php';
 require_once __DIR__ . '/../../models/OrderDetail.php';
-require_once __DIR__ . '/../../models/User.php';
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -174,100 +173,23 @@ function handlePutRequest() {
             return;
         }
         
-        // Get order details before updating status
-        $order = $orderModel->getOrderById($orderId);
-        if (!$order) {
-            http_response_code(404);
+        $result = $orderModel->updateStatus($orderId, $newStatus);
+        
+        if ($result) {
+            echo json_encode([
+                'status' => 'success',
+                'message' => "Order #{$orderId} status updated to {$newStatus}",
+                'data' => [
+                    'order_id' => $orderId,
+                    'new_status' => $newStatus
+                ]
+            ]);
+        } else {
+            http_response_code(500);
             echo json_encode([
                 'status' => 'error',
-                'message' => 'Order not found'
+                'message' => 'Failed to update order status'
             ]);
-            return;
-        }
-        
-        // Check if order is being cancelled and handle refund
-        if ($newStatus === 'Cancelled' && $order['status'] !== 'Cancelled') {
-            try {
-                $conn = Database::getInstance();
-                $conn->beginTransaction();
-                
-                // Update order status first
-                $result = $orderModel->updateStatus($orderId, $newStatus);
-                
-                if (!$result) {
-                    throw new Exception('Failed to update order status');
-                }
-                
-                // Process refund if order was paid
-                $userModel = new User();
-                $refundAmount = $order['total'];
-                $userId = $order['user_id'];
-                
-                // Add refund amount to user balance
-                $refundResult = $userModel->addBalance($userId, $refundAmount);
-                
-                if (!$refundResult) {
-                    throw new Exception('Failed to process refund');
-                }
-                
-                // Create refund record for tracking
-                $refundStmt = $conn->prepare("
-                    INSERT INTO refunds (order_id, user_id, amount, reason, processed_by, created_at) 
-                    VALUES (?, ?, ?, ?, ?, NOW())
-                ");
-                $refundRecordResult = $refundStmt->execute([
-                    $orderId, 
-                    $userId, 
-                    $refundAmount, 
-                    'Order cancelled by admin', 
-                    $_SESSION['user_id']
-                ]);
-                
-                if (!$refundRecordResult) {
-                    throw new Exception('Failed to create refund record');
-                }
-                
-                $conn->commit();
-                
-                echo json_encode([
-                    'status' => 'success',
-                    'message' => "Order #{$orderId} cancelled and refund of $" . number_format($refundAmount, 2) . " processed successfully",
-                    'data' => [
-                        'order_id' => $orderId,
-                        'new_status' => $newStatus,
-                        'refund_amount' => $refundAmount,
-                        'refunded_to_user' => $userId
-                    ]
-                ]);
-                
-            } catch (Exception $e) {
-                $conn->rollBack();
-                http_response_code(500);
-                echo json_encode([
-                    'status' => 'error',
-                    'message' => 'Failed to cancel order and process refund: ' . $e->getMessage()
-                ]);
-            }
-        } else {
-            // Regular status update (not cancellation)
-            $result = $orderModel->updateStatus($orderId, $newStatus);
-            
-            if ($result) {
-                echo json_encode([
-                    'status' => 'success',
-                    'message' => "Order #{$orderId} status updated to {$newStatus}",
-                    'data' => [
-                        'order_id' => $orderId,
-                        'new_status' => $newStatus
-                    ]
-                ]);
-            } else {
-                http_response_code(500);
-                echo json_encode([
-                    'status' => 'error',
-                    'message' => 'Failed to update order status'
-                ]);
-            }
         }
     } else {
         http_response_code(400);
