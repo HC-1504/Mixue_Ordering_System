@@ -63,52 +63,37 @@ class Order
     public function createOrder(array $data)
     {
         // Validate required fields
-        if (empty($data['user_id']) || empty($data['phone']) || !isset($data['type']) || !isset($data['total'])) {
-            throw new Exception('Missing required order fields.');
+        if (empty($data['user_id']) || empty($data['phone']) || !isset($data['type']) || !isset($data['total']) || empty($data['branch_id'])) {
+            throw new Exception('Missing required order fields, including branch selection.');
         }
 
         // Fallback/default values
         $data['status']  = $data['status'] ?? 'Pending';
 
-        // Ensure pickup orders have a valid address
-        if ($data['type'] === 'pickup' && empty($data['address'])) {
-            $data['address'] = null;
-        } elseif ($data['type'] === 'delivery') {
-            $data['branch_id'] = null; // delivery doesn't need branch
-            if (empty($data['address'])) {
-                throw new Exception('Address is required for delivery orders.');
-            }
+        // Address handling
+        if ($data['type'] === 'pickup') {
+            $data['address'] = null; // No address for pickup
+        } elseif ($data['type'] === 'delivery' && empty($data['address'])) {
+            throw new Exception('Address is required for delivery orders.');
         }
 
-        if (!isset($data['branch_id']) || $data['branch_id'] === '') {
-            $data['branch_id'] = null;
-        }
+        // Generate daily sequence for any order with a branch
+        $dailySequence = $this->generateDailySequence(intval($data['branch_id']));
 
-        $sql = "INSERT INTO orders (user_id, phone, address, delivery_fee, total, status, type, branch_id, created_at)
-                VALUES (:user_id, :phone, :address, :delivery_fee, :total, :status, :type, :branch_id, NOW())";
+        $sql = "INSERT INTO orders (user_id, phone, address, delivery_fee, total, status, type, branch_id, daily_sequence, created_at)
+                VALUES (:user_id, :phone, :address, :delivery_fee, :total, :status, :type, :branch_id, :daily_sequence, NOW())";
 
         $stmt = $this->conn->prepare($sql);
 
         $stmt->bindValue(':user_id', intval($data['user_id']), PDO::PARAM_INT);
         $stmt->bindValue(':phone', $data['phone'], PDO::PARAM_STR);
-        if (is_null($data['address'])) {
-            $stmt->bindValue(':address', null, PDO::PARAM_NULL);
-        } else {
-            $stmt->bindValue(':address', $data['address'], PDO::PARAM_STR);
-        }
-        if (isset($data['delivery_fee'])) {
-            $stmt->bindValue(':delivery_fee', (string)$data['delivery_fee'], PDO::PARAM_STR);
-        } else {
-            $stmt->bindValue(':delivery_fee', null, PDO::PARAM_NULL);
-        }
+        $stmt->bindValue(':address', $data['address'], PDO::PARAM_STR);
+        $stmt->bindValue(':delivery_fee', $data['delivery_fee'] ?? null, PDO::PARAM_STR);
         $stmt->bindValue(':total', (string)$data['total'], PDO::PARAM_STR);
         $stmt->bindValue(':status', $data['status'], PDO::PARAM_STR);
         $stmt->bindValue(':type', $data['type'], PDO::PARAM_STR);
-        if (is_null($data['branch_id'])) {
-            $stmt->bindValue(':branch_id', null, PDO::PARAM_NULL);
-        } else {
-            $stmt->bindValue(':branch_id', intval($data['branch_id']), PDO::PARAM_INT);
-        }
+        $stmt->bindValue(':branch_id', intval($data['branch_id']), PDO::PARAM_INT);
+        $stmt->bindValue(':daily_sequence', $dailySequence, PDO::PARAM_INT);
 
         if ($stmt->execute()) {
             $orderId = $this->conn->lastInsertId();
@@ -119,7 +104,8 @@ class Order
                 'order_id' => $orderId,
                 'amount' => $data['total'],
                 'order_type' => $data['type'],
-                'branch_id' => $data['branch_id'] ?? null,
+                'branch_id' => $data['branch_id'],
+                'daily_sequence' => $dailySequence,
                 'delivery_fee' => $data['delivery_fee'] ?? 0,
                 'status' => $data['status']
             ]);
@@ -138,6 +124,29 @@ class Order
 
             throw new Exception("Order insert failed: " . $errorInfo[2]);
         }
+    }
+
+    /**
+     * Generates a sequential number for a branch for the current day.
+     */
+    public function generateDailySequence(int $branchId): int
+    {
+        $sql = "SELECT MAX(daily_sequence) as max_seq 
+                FROM orders 
+                WHERE branch_id = :branch_id AND DATE(created_at) = CURDATE()";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':branch_id', $branchId, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        $nextSequence = 1;
+        if ($result && !is_null($result['max_seq'])) {
+            $nextSequence = intval($result['max_seq']) + 1;
+        }
+        
+        return $nextSequence;
     }
 
     /**

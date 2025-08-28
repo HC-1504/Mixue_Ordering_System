@@ -54,7 +54,11 @@ class ProfileController
         $reloads = $reloadModel->getReloadsByUser($user_id);
         
         $conn = Database::getInstance();
-        $sql = "SELECT * FROM orders WHERE user_id = ? ORDER BY id DESC";
+        $sql = "SELECT o.id, o.created_at, o.type, o.status, o.daily_sequence, b.name AS branch_name 
+                FROM orders o 
+                LEFT JOIN branches b ON o.branch_id = b.id 
+                WHERE o.user_id = ? 
+                ORDER BY o.created_at DESC";
         $stmt = $conn->prepare($sql);
         $stmt->execute([$user_id]);
         $order_history = $stmt->fetchAll(PDO::FETCH_ASSOC);

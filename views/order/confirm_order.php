@@ -15,20 +15,20 @@ require_once __DIR__ . '/../../includes/header.php';
             </div>
         </div>
 
+        <div class="mb-3">
+            <label for="branch_id" class="form-label"><?= $type === 'pickup' ? 'Pickup Branch' : 'Delivery Branch' ?></label>
+            <select name="branch_id" id="branch_id" class="form-select" required>
+                <option value="">Select a branch</option>
+                <?php foreach ($branches as $branch): ?>
+                    <option value="<?= htmlspecialchars($branch['id']) ?>"><?= htmlspecialchars($branch['name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
         <?php if ($type === 'delivery'): ?>
             <div class="mb-3">
                 <label for="address" class="form-label">Delivery Address</label>
                 <textarea name="address" id="address" class="form-control" required></textarea>
-            </div>
-        <?php elseif ($type === 'pickup'): ?>
-            <div class="mb-3">
-                <label for="branch_id" class="form-label">Pickup Branch</label>
-                <select name="branch_id" id="branch_id" class="form-select" required>
-                    <option value="">Select a branch</option>
-                    <?php foreach ($branches as $branch): ?>
-                        <option value="<?= htmlspecialchars($branch['id']) ?>"><?= htmlspecialchars($branch['name']) ?></option>
-                    <?php endforeach; ?>
-                </select>
             </div>
         <?php endif; ?>
 
