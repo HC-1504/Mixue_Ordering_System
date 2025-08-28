@@ -21,8 +21,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'generate_report' && $_SERVER[
     $postData = json_decode(file_get_contents('php://input'), true);
     $startDate = $postData['start_date'] ?? null;
     $endDate = $postData['end_date'] ?? null;
+    $branchId = $postData['branch_id'] ?? null; // 添加分支ID参数
     
-    $result = $controller->generateBusinessReport($startDate, $endDate);
+    $result = $controller->generateBusinessReport($startDate, $endDate, $branchId); // 传递分支ID参数
     echo json_encode($result);
     exit();
 }

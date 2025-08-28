@@ -4,17 +4,20 @@ require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../models/Order.php';
 require_once __DIR__ . '/../../models/Product.php';
 require_once __DIR__ . '/../../models/Category.php';
+require_once __DIR__ . '/../../models/Branch.php'; // <<< NEW REQUIRE
 
 class ReportController {
     private $orderModel;
     private $productModel;
     private $categoryModel;
+    private $branchModel; // <<< NEW PROPERTY
     private $apiBaseUrl;
     
     public function __construct() {
         $this->orderModel = new Order();
         $this->productModel = new Product();
         $this->categoryModel = new Category();
+        $this->branchModel = new Branch(); // <<< INITIALIZE NEW MODEL
         $this->apiBaseUrl = 'http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/Assignment/api/admin';
     }
     
@@ -27,17 +30,23 @@ class ReportController {
         }
         
         $page_title = 'Reports Dashboard';
+        $branches = $this->branchModel->getAllBranches(); // <<< FETCH BRANCHES FOR DROPDOWN
+        if ($branches === false) {
+            Session::set('report_errors', ['Could not load branch data.']);
+            $branches = [];
+        }
+        
         require_once __DIR__ . '/../../views/admin/reports/index.php';
     }
     
     /**
      * Generate sales report by consuming Order API
      */
-    public function generateSalesReport($startDate = null, $endDate = null) {
+    public function generateSalesReport($startDate = null, $endDate = null, $branchId = null) { // <<< ADD $branchId
         try {
             // For now, use direct database access to ensure it works
             // TODO: Re-enable API consumption once we debug the session issue
-            $ordersData = $this->getOrdersFromDatabase();
+            $ordersData = $this->getOrdersFromDatabase($branchId); // <<< PASS $branchId
             
             if (!$ordersData || $ordersData['status'] !== 'success') {
                 throw new Exception('Failed to fetch orders data');
@@ -55,15 +64,25 @@ class ReportController {
                 $filteredCount = count($orders);
                 error_log("Sales Report - Date filter: {$startDate} to {$endDate}, Orders: {$originalCount} -> {$filteredCount}");
             }
+            // Log branch filter if applied
+            if ($branchId) {
+                 error_log("Sales Report - Branch filter: {$branchId}");
+            }
+
 
             // Calculate sales metrics
             $totalSales = 0;
             $totalOrders = count($orders);
             $statusCounts = [];
             $dailySales = [];
+            $completeOrder=0;
 
             foreach ($orders as $order) {
-                $totalSales += (float)$order['total'];
+                if($order['status']!='Cancelled'){
+                    $totalSales += (float)$order['total'];
+                    $completeOrder++;
+                }
+                
                 
                 // Count by status
                 $status = $order['status'];
@@ -78,7 +97,7 @@ class ReportController {
             ksort($dailySales);
 
             // Calculate average order value
-            $averageOrderValue = $totalOrders > 0 ? $totalSales / $totalOrders : 0;
+            $averageOrderValue=$completeOrder>0?$totalSales/$completeOrder:0;
 
             return [
                 'status' => 'success',
@@ -92,7 +111,8 @@ class ReportController {
                     'date_range' => [
                         'start' => $startDate,
                         'end' => $endDate
-                    ]
+                    ],
+                    'branch_id' => $branchId // <<< RETURN SELECTED BRANCH
                 ]
             ];
 
@@ -107,11 +127,11 @@ class ReportController {
     /**
      * Generate order status report
      */
-    public function generateOrderStatusReport($startDate = null, $endDate = null) {
+    public function generateOrderStatusReport($startDate = null, $endDate = null, $branchId = null) { // <<< ADD $branchId
         try {
             // For now, use direct database access to ensure it works
             // TODO: Re-enable API consumption once we debug the session issue
-            $ordersData = $this->getOrdersFromDatabase();
+            $ordersData = $this->getOrdersFromDatabase($branchId); // <<< PASS $branchId
             
             if (!$ordersData || $ordersData['status'] !== 'success') {
                 throw new Exception('Failed to fetch orders data');
@@ -128,6 +148,10 @@ class ReportController {
                 });
                 $filteredCount = count($orders);
                 error_log("Status Report - Date filter: {$startDate} to {$endDate}, Orders: {$originalCount} -> {$filteredCount}");
+            }
+            // Log branch filter if applied
+            if ($branchId) {
+                error_log("Status Report - Branch filter: {$branchId}");
             }
             
             $statusReport = [];
@@ -285,7 +309,7 @@ class ReportController {
     /**
      * Fallback method to get orders directly from database if API fails
      */
-    private function getOrdersFromDatabase() {
+    private function getOrdersFromDatabase($branchId = null) { // <<< ADD $branchId
         try {
             // Check if orderModel is properly initialized
             if (!$this->orderModel) {
@@ -293,7 +317,8 @@ class ReportController {
             }
             
             // Try to get orders with error handling
-            $orders = $this->orderModel->getAllOrdersWithFilters('', '', 1000, 0);
+            // <<< PASS $branchId TO MODEL'S FILTER METHOD
+            $orders = $this->orderModel->getAllOrdersWithFilters('', '', 1000, 0, $branchId); 
             
             if ($orders === false) {
                 throw new Exception('Failed to retrieve orders from database');
@@ -323,21 +348,21 @@ class ReportController {
     /**
      * Generate comprehensive business report
      */
-    public function generateBusinessReport($startDate = null, $endDate = null) {
+    public function generateBusinessReport($startDate = null, $endDate = null, $branchId = null) { // <<< ADD $branchId
         try {
             // Get sales report with date filter
-            $salesReport = $this->generateSalesReport($startDate, $endDate);
+            $salesReport = $this->generateSalesReport($startDate, $endDate, $branchId); // <<< PASS $branchId
             if ($salesReport['status'] === 'error') {
                 throw new Exception($salesReport['message']);
             }
 
             // Get order status report with date filter
-            $statusReport = $this->generateOrderStatusReport($startDate, $endDate);
+            $statusReport = $this->generateOrderStatusReport($startDate, $endDate, $branchId); // <<< PASS $branchId
             if ($statusReport['status'] === 'error') {
                 throw new Exception($statusReport['message']);
             }
 
-            // Get product performance data
+            // Get product performance data (these don't need branch filter for now, assuming overall)
             $products = $this->productModel->getAll();
             $categories = $this->categoryModel->getAll();
 
@@ -352,7 +377,8 @@ class ReportController {
                     'date_range' => [
                         'start' => $startDate,
                         'end' => $endDate
-                    ]
+                    ],
+                    'branch_id' => $branchId // <<< RETURN SELECTED BRANCH
                 ]
             ];
 
@@ -363,4 +389,17 @@ class ReportController {
             ];
         }
     }
-} 
+
+    // New method to retrieve branches
+    public function getBranches() {
+        try {
+            $branches = $this->branchModel->getAllBranches();
+            if ($branches === false) {
+                throw new Exception('Failed to retrieve branches from database.');
+            }
+            return ['status' => 'success', 'data' => $branches];
+        } catch (Exception $e) {
+            return ['status' => 'error', 'message' => $e->getMessage()];
+        }
+    }
+}

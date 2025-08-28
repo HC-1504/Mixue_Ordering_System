@@ -239,16 +239,16 @@ class Order
     /**
      * List orders with optional search/status filters and pagination (for API)
      */
-    public function getAllOrdersWithFilters(string $search = '', string $status = '', int $limit = 50, int $offset = 0): array
+    public function getAllOrdersWithFilters(string $search = '', string $status = '', int $limit = 50, int $offset = 0, $branchId = null): array
     {
         $conditions = [];
         $params = [];
-
+    
         if ($status !== '') {
             $conditions[] = 'o.status = ?';
             $params[] = $status;
         }
-
+    
         if ($search !== '') {
             $conditions[] = '(u.name LIKE ? OR u.email LIKE ? OR CAST(o.id AS CHAR) LIKE ?)';
             $like = "%{$search}%";
@@ -256,7 +256,13 @@ class Order
             $params[] = $like;
             $params[] = $like;
         }
-
+        
+        // 添加分支筛选条件
+        if ($branchId !== null && $branchId !== 'all') {
+            $conditions[] = 'o.branch_id = ?';
+            $params[] = $branchId;
+        }
+    
         $whereSql = '';
         if (count($conditions) > 0) {
             $whereSql = 'WHERE ' . implode(' AND ', $conditions);

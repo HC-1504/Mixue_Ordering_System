@@ -46,12 +46,25 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1 class="h3 mb-0">Reports Dashboard</h1>
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 align-items-center"> <!-- Added align-items-center -->
+                    <!-- NEW: Branch Filter Dropdown -->
+                    <div class="form-group mb-0">
+                        <label for="branchFilter" class="sr-only">Filter by Branch</label>
+                        <select class="form-control" id="branchFilter" onchange="generateReportWithFilter(document.querySelector('.btn-group .btn.active').dataset.period)">
+                            <option value="all">All Branches</option>
+                            <?php if (!empty($branches)): ?>
+                                <?php foreach ($branches as $branch): ?>
+                                    <option value="<?= htmlspecialchars($branch['id']) ?>"><?= htmlspecialchars($branch['name']) ?></option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+
                     <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-outline-primary" onclick="generateReportWithFilter('1week')">1 Week</button>
-                        <button type="button" class="btn btn-outline-primary" onclick="generateReportWithFilter('1month')">1 Month</button>
-                        <button type="button" class="btn btn-outline-primary" onclick="generateReportWithFilter('3months')">3 Months</button>
-                        <button type="button" class="btn btn-outline-primary active" onclick="generateReportWithFilter('all')">All Time</button>
+                        <button type="button" class="btn btn-outline-primary" data-period="1week" onclick="generateReportWithFilter('1week')">1 Week</button>
+                        <button type="button" class="btn btn-outline-primary" data-period="1month" onclick="generateReportWithFilter('1month')">1 Month</button>
+                        <button type="button" class="btn btn-outline-primary" data-period="3months" onclick="generateReportWithFilter('3months')">3 Months</button>
+                        <button type="button" class="btn btn-outline-primary active" data-period="all" onclick="generateReportWithFilter('all')">All Time</button>
                     </div>
                     <button class="btn btn-primary" onclick="generateBusinessReport()">
                         <i class="fas fa-sync-alt"></i> Generate Report
@@ -363,10 +376,13 @@ function generateReportWithFilter(period) {
             break;
     }
 
+    // 获取选中的分支ID
+    const branchId = document.getElementById('branchFilter').value;
+
     // Debug log
-    console.log('Filtering with period:', period, 'startDate:', startDate, 'endDate:', endDate);
+    console.log('Filtering with period:', period, 'startDate:', startDate, 'endDate:', endDate, 'branchId:', branchId);
     
-    // Make AJAX call to generate report with date filter
+    // Make AJAX call to generate report with date filter and branch filter
     fetch('reports.php?action=generate_report', {
         method: 'POST',
         headers: {
@@ -375,7 +391,8 @@ function generateReportWithFilter(period) {
         body: JSON.stringify({
             start_date: startDate,
             end_date: endDate,
-            period: period
+            period: period,
+            branch_id: branchId // 添加分支ID参数
         })
     })
     .then(response => response.json())
@@ -401,32 +418,9 @@ function generateReportWithFilter(period) {
 }
 
 function generateBusinessReport() {
-    // Show loading state
-    document.getElementById('totalSales').textContent = 'Loading...';
-    document.getElementById('totalOrders').textContent = 'Loading...';
-    document.getElementById('avgOrderValue').textContent = 'Loading...';
-    document.getElementById('totalProducts').textContent = 'Loading...';
-
-    // Make AJAX call to generate report
-    fetch('reports.php?action=generate_report', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            updateDashboard(data.data);
-        } else {
-            console.error('Error generating report:', data.message);
-            alert('Error generating report: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error generating report. Please try again.');
-    });
+    // 调用generateReportWithFilter函数，使用当前选中的时间段
+    const activePeriod = document.querySelector('.btn-group .btn.active').dataset.period || 'all';
+    generateReportWithFilter(activePeriod);
 }
 
 function updateDashboard(data) {
