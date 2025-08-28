@@ -64,6 +64,7 @@ class AccountLockoutDecorator implements AuthenticatorInterface
         return $stmt->fetch(\PDO::FETCH_OBJ);
     }
     private function isAccountLocked(object $user): bool {
+        date_default_timezone_set('Asia/Kuala_Lumpur');
         return $user->account_locked_until && new DateTime() < new DateTime($user->account_locked_until);
     }
     private function resetFailedAttempts(int $userId): void {
@@ -73,6 +74,7 @@ class AccountLockoutDecorator implements AuthenticatorInterface
         $this->pdo->prepare("UPDATE users SET failed_login_attempts = failed_login_attempts + 1 WHERE id = ?")->execute([$userId]);
         $user = $this->pdo->query("SELECT * FROM users WHERE id = $userId")->fetch(\PDO::FETCH_OBJ);
         if ($user && $user->failed_login_attempts >= 5) {
+            date_default_timezone_set('Asia/Kuala_Lumpur');
             $lockoutTime = (new DateTime())->modify('+15 minutes')->format('Y-m-d H:i:s');
             $this->pdo->prepare("UPDATE users SET account_locked_until = ? WHERE id = ?")->execute([$lockoutTime, $userId]);
             // --- FIX 4 ---
