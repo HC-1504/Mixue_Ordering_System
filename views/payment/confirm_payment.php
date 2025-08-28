@@ -13,7 +13,7 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
 
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="mb-0">Your Current Balance: RM <?= number_format($user_balance, 2) ?></h3>
+            <h3 class="mb-0">Your Mixue Wallet Balance: RM <?= number_format($user_balance, 2) ?></h3>
         </div>
 
         <div class="payment-method-selection mb-4">
@@ -121,7 +121,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 walletPaymentContainer.style.display = 'block';
             }
         });
-        
+
         const stripe = Stripe('<?= STRIPE_PUBLISHABLE_KEY ?>');
         let elements;
 
