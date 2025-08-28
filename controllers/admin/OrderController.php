@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/db.php';
 require_once __DIR__ . '/../../includes/session.php';
+require_once __DIR__ . '/../../models/User.php';
 
 class OrderController {
     private PDO $pdo;
@@ -58,14 +59,46 @@ class OrderController {
         }
         
         try {
-            $result = $this->updateOrderStatus($orderId, $newStatus);
-            if ($result) {
-                Session::set('order_success', "Order #{$orderId} status updated to {$newStatus}.");
+            // 如果状态改为Cancelled，需要处理退款
+            if ($newStatus === 'Cancelled') {
+                $this->pdo->beginTransaction();
+                
+                // 获取订单信息
+                $order = $this->getOrderById($orderId);
+                if (!$order) {
+                    throw new Exception('Order not found');
+                }
+                
+                // 更新订单状态
+                $result = $this->updateOrderStatus($orderId, $newStatus);
+                if (!$result) {
+                    throw new Exception('Failed to update order status');
+                }
+                
+                // 如果订单有用户ID，进行退款
+                if ($order->user_id) {
+                    $userModel = new User();
+                    $refundResult = $userModel->addBalance($order->user_id, $order->total);
+                    if (!$refundResult) {
+                        throw new Exception('Failed to process refund');
+                    }
+                }
+                
+                $this->pdo->commit();
+                Session::set('order_success', "Order #{$orderId} cancelled and refund of RM" . number_format($order->total, 2) . " processed.");
             } else {
-                Session::set('order_errors', ['Failed to update order status.']);
+                $result = $this->updateOrderStatus($orderId, $newStatus);
+                if ($result) {
+                    Session::set('order_success', "Order #{$orderId} status updated to {$newStatus}.");
+                } else {
+                    Session::set('order_errors', ['Failed to update order status.']);
+                }
             }
         } catch (Exception $e) {
-            Session::set('order_errors', ['An error occurred while updating the order status.']);
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            Session::set('order_errors', ['An error occurred while updating the order status: ' . $e->getMessage()]);
             error_log('Order status update error: ' . $e->getMessage());
         }
         
@@ -134,4 +167,4 @@ class OrderController {
         $stmt = $this->pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
         return $stmt->execute([$newStatus, $orderId]);
     }
-} 
+}

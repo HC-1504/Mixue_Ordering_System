@@ -43,12 +43,12 @@
             <tbody>
                 <?php foreach ($branches as $branch): ?>
                 <tr>
-                    <td><?= htmlspecialchars($branch->name); ?></td>
-                    <td><?= nl2br(htmlspecialchars($branch->address)); ?></td>
-                    <td><?= htmlspecialchars($branch->phone); ?></td>
+                    <td><?= htmlspecialchars($branch['name']); ?></td>
+                    <td><?= nl2br(htmlspecialchars($branch['address'])); ?></td>
+                    <td><?= htmlspecialchars($branch['phone']); ?></td>
                     <td>
-                        <a href="branches.php?action=edit&id=<?= $branch->id; ?>" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i> Edit</a>
-                        <a href="branches.php?action=delete&id=<?= $branch->id; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');"><i class="fas fa-trash"></i> Delete</a>
+                        <a href="branches.php?action=edit&id=<?= $branch['id']; ?>" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i> Edit</a>
+                        <a href="branches.php?action=delete&id=<?= $branch['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');"><i class="fas fa-trash"></i> Delete</a>
                     </td>
                 </tr>
                 <?php endforeach; ?>

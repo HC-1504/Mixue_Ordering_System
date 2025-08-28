@@ -29,37 +29,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Session::verifyCsrfToken($_POST['_csrf'] ?? '')) {
         $error = 'Invalid request. Please try again.';
     } else {
-        // --- CAPTCHA VALIDATION START (NEW ADDITION) ---
-        $user_captcha = $_POST['captcha_input'] ?? '';
-        $stored_captcha = Session::get('captcha_text'); 
+        $email = trim(filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL));
+        $password = $_POST['password'] ?? '';
+        $post_redirect = $_POST['redirect'] ?? (BASE_URL . '/profile.php');
 
-        // Unset the session captcha immediately after retrieval to prevent replay attacks
-        Session::unset('captcha_text'); 
-
-        if (empty($user_captcha) || strtolower($user_captcha) !== strtolower($stored_captcha)) {
-            $error = 'Incorrect captcha. Please try again.';
-        } else {
-        // --- CAPTCHA VALIDATION END ---
-
-            $email = trim(filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL));
-            $password = $_POST['password'] ?? '';
-            $post_redirect = $_POST['redirect'] ?? (BASE_URL . '/profile.php');
-
-            // --- CHANGE 3: Use the new $loginService object ---
-            // It was created for us inside controllers/auth.php
-            if ($loginService->login($email, $password)) {
-                $userRole = Session::get('user_role');
-                if (in_array($userRole, ['admin', 'manager'])) {
-                    header('Location: ' . BASE_URL . '/admin/dashboard.php');
-                } else {
-                    header('Location: ' . $post_redirect);
-                }
-                exit();
+        // --- CHANGE 3: Use the new $loginService object ---
+        // It was created for us inside controllers/auth.php
+        if ($loginService->login($email, $password)) {
+            $userRole = Session::get('user_role');
+            if (in_array($userRole, ['admin', 'manager'])) {
+                header('Location: ' . BASE_URL . '/admin/dashboard.php');
             } else {
-                // The decorators handle logging the failure, so we just set the error message.
-                $error = 'The email or password you entered is incorrect, or the account is locked.';
+                header('Location: ' . $post_redirect);
             }
-        } // End of CAPTCHA else block - everything below here is original logic, just wrapped.
+            exit();
+        } else {
+            // The decorators handle logging the failure, so we just set the error message.
+            $error = 'The email or password you entered is incorrect, or the account is locked.';
+        }
     }
 }
 
@@ -91,17 +78,7 @@ require_once(__DIR__ . '/../../includes/header.php');
                     </div>
             </p>
 
-            <!-- CAPTCHA ADDITION START (NEW ADDITION) -->
-            <p class="captcha-group">
-                <label for="captcha_input">Enter the text you see in the image:</label>
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <!-- Ensure BASE_URL is correctly defined in your config.php -->
-                    <img src="<?= BASE_URL ?>/views/login_logout_modules/generate_captcha.php" alt="CAPTCHA Image" id="captcha_image" style="border:1px solid #ccc; border-radius:4px; vertical-align:middle; cursor:pointer;" onclick="refreshCaptcha()">
-                    <input type="text" id="captcha_input" name="captcha_input" required placeholder="Captcha" autocomplete="off" maxlength="6" style="flex-grow:1;">
-                </div>
-                <small><a href="javascript:void(0);" onclick="refreshCaptcha()" style="font-size:0.9em;">Refresh Captcha</a></small>
-            </p>
-            <!-- CAPTCHA ADDITION END -->
+
             
             <button type="submit" class="login-button">Sign In</button>
         </form>
@@ -133,10 +110,5 @@ function togglePassword(fieldId, iconSpan) {
     }
 }
 
-// CAPTCHA REFRESH SCRIPT (NEW ADDITION)
-function refreshCaptcha() {
-    var captchaImage = document.getElementById('captcha_image');
-    // Appending a timestamp to the URL busts the cache and forces the browser to load a new image
-    captchaImage.src = '<?= BASE_URL ?>/views/login_logout_modules/generate_captcha.php?' + new Date().getTime();
-}
+
 </script>

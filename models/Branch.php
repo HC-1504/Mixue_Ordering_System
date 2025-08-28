@@ -11,7 +11,11 @@ class Branch {
     }
 
     public function getAllBranches() { // Renamed from getAll for clarity with controller
-        return $this->pdo->query("SELECT id, name FROM branches ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+        return $this->pdo->query("SELECT id, name, address, phone FROM branches ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    public function getAll() { // Alias for compatibility with controller
+        return $this->getAllBranches();
     }
     public function findById($id) {
         $stmt = $this->pdo->prepare("SELECT * FROM branches WHERE id = ?");

@@ -3,6 +3,7 @@ require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../models/Order.php';
 require_once __DIR__ . '/../../models/OrderDetail.php';
+require_once __DIR__ . '/../../models/User.php';
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -173,23 +174,73 @@ function handlePutRequest() {
             return;
         }
         
-        $result = $orderModel->updateStatus($orderId, $newStatus);
-        
-        if ($result) {
-            echo json_encode([
-                'status' => 'success',
-                'message' => "Order #{$orderId} status updated to {$newStatus}",
-                'data' => [
-                    'order_id' => $orderId,
-                    'new_status' => $newStatus
-                ]
-            ]);
+        // 如果状态改为Cancelled，需要处理退款
+        if ($newStatus === 'Cancelled') {
+            $pdo = Database::getInstance();
+            $pdo->beginTransaction();
+            
+            try {
+                // 获取订单信息
+                $stmt = $pdo->prepare("SELECT * FROM orders WHERE id = ?");
+                $stmt->execute([$orderId]);
+                $order = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$order) {
+                    throw new Exception('Order not found');
+                }
+                
+                // 更新订单状态
+                $result = $orderModel->updateStatus($orderId, $newStatus);
+                if (!$result) {
+                    throw new Exception('Failed to update order status');
+                }
+                
+                // 如果订单有用户ID，进行退款
+                if ($order['user_id']) {
+                    $userModel = new User();
+                    $refundResult = $userModel->addBalance($order['user_id'], $order['total']);
+                    if (!$refundResult) {
+                        throw new Exception('Failed to process refund');
+                    }
+                }
+                
+                $pdo->commit();
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => "Order #{$orderId} cancelled and refund of RM" . number_format($order['total'], 2) . " processed",
+                    'data' => [
+                        'order_id' => $orderId,
+                        'new_status' => $newStatus,
+                        'refund_amount' => $order['total']
+                    ]
+                ]);
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                http_response_code(500);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Failed to cancel order and process refund: ' . $e->getMessage()
+                ]);
+            }
         } else {
-            http_response_code(500);
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Failed to update order status'
-            ]);
+            $result = $orderModel->updateStatus($orderId, $newStatus);
+            
+            if ($result) {
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => "Order #{$orderId} status updated to {$newStatus}",
+                    'data' => [
+                        'order_id' => $orderId,
+                        'new_status' => $newStatus
+                    ]
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Failed to update order status'
+                ]);
+            }
         }
     } else {
         http_response_code(400);

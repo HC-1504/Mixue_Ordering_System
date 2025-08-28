@@ -79,7 +79,7 @@ class ReportController
             $completedOrdersCount = 0;
 
             foreach ($orders as $order) {
-                if ($order['status'] === 'Completed' || $order['status'] === 'Delivered') {
+                if ($order['status'] != 'Cancelled') {
                     $totalSales += (float)$order['total'];
                     $completedOrdersCount++;
                 }

@@ -156,6 +156,11 @@
                         </select>
                     </div>
 
+                    <div class="alert alert-warning" id="refund-warning" style="display: none;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Notice:</strong> Changing order status to "Cancelled" will automatically refund the user.
+                    </div>
+
                     <input type="hidden" name="order_id" id="modal-order-id-input">
                     <input type="hidden" name="_csrf" value="<?= Session::generateCsrfToken() ?>">
                 </div>
@@ -171,6 +176,9 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const statusModal = document.getElementById('statusModal');
+        const statusSelect = document.getElementById('new_status');
+        const refundWarning = document.getElementById('refund-warning');
+        
         if (statusModal) {
             statusModal.addEventListener('show.bs.modal', function(event) {
                 const button = event.relatedTarget;
@@ -182,8 +190,21 @@
                 document.getElementById('modal-order-id-input').value = orderId;
 
                 // Set current status as selected
-                const statusSelect = document.getElementById('new_status');
                 statusSelect.value = currentStatus;
+                
+                // Hide warning initially
+                refundWarning.style.display = 'none';
+            });
+        }
+        
+        // Show/hide refund warning based on status selection
+        if (statusSelect && refundWarning) {
+            statusSelect.addEventListener('change', function() {
+                if (this.value === 'Cancelled') {
+                    refundWarning.style.display = 'block';
+                } else {
+                    refundWarning.style.display = 'none';
+                }
             });
         }
     });
