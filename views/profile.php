@@ -87,6 +87,7 @@ require_once __DIR__ . '/../includes/header.php';
                         <tr>
                             <th>Date</th>
                             <th>Type</th>
+                            <th>Pickup Code</th>
                             <th>Total (RM)</th>
                             <th>Status</th>
                             <th>Action</th>
@@ -97,6 +98,13 @@ require_once __DIR__ . '/../includes/header.php';
                             <tr>
                                 <td><?= htmlspecialchars($order['created_at'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars($order['type'] ?? '-') ?></td>
+                                <td>
+                                    <?php if (($order['type'] ?? '') === 'pickup' && !empty($order['pickup_sequence'])): ?>
+                                        <strong>#<?= htmlspecialchars($order['pickup_sequence']) ?></strong>
+                                    <?php else: ?>
+                                        <span class="text-muted">N/A</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?= number_format($order['total'] ?? 0, 2) ?></td>
                                 <td><?= htmlspecialchars($order['status'] ?? '-') ?></td>
                                 <td>

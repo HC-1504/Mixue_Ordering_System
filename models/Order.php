@@ -141,6 +141,29 @@ class Order
     }
 
     /**
+     * Generates a sequential pickup number for a branch for the current day.
+     */
+    public function generatePickupSequence(int $branchId): int
+    {
+        $sql = "SELECT MAX(pickup_sequence) as max_seq 
+                FROM orders 
+                WHERE branch_id = :branch_id AND DATE(created_at) = CURDATE()";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':branch_id', $branchId, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        $nextSequence = 1;
+        if ($result && !is_null($result['max_seq'])) {
+            $nextSequence = intval($result['max_seq']) + 1;
+        }
+        
+        return $nextSequence;
+    }
+
+    /**
      * Save ordered items into order_details table
      */
     public function addDetails($orderId, $cart)

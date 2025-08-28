@@ -8,6 +8,7 @@
         <li class="list-group-item"><strong>Type:</strong> <?= htmlspecialchars($order['type'] ?? '-') ?></li>
         <?php if ($order['type'] === 'pickup'): ?>
             <li class="list-group-item"><strong>Pickup Location:</strong> <?= htmlspecialchars($order['branch_name'] ?? '-') ?></li>
+            <li class="list-group-item list-group-item-info"><strong>Pickup Code:</strong> #<?= htmlspecialchars($order['pickup_sequence'] ?? '-') ?></li>
         <?php else: ?>
             <li class="list-group-item"><strong>Delivery Address:</strong> <?= htmlspecialchars($order['address'] ?? '-') ?></li>
             <li class="list-group-item"><strong>Delivery Fee:</strong> RM <?= number_format($order['delivery_fee'] ?? 0, 2) ?></li>

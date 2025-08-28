@@ -16,18 +16,45 @@ require_once __DIR__ . '/../../includes/header.php';
             <h3 class="mb-0">Your Current Balance: RM <?= number_format($user_balance, 2) ?></h3>
         </div>
 
-                <form id="payment-form">
-            <div id="payment-element" class="mb-3">
-                <!-- A Stripe Payment Element will be inserted here. -->
+        <div class="payment-method-selection mb-4">
+            <h4>Select Payment Method</h4>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="payment_method" id="stripe-payment" value="stripe" checked>
+                <label class="form-check-label" for="stripe-payment">
+                    Credit/Debit Card or E-Wallets (via Stripe)
+                </label>
             </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="payment_method" id="wallet-payment" value="wallet" <?= $user_balance < $order['total'] ? 'disabled' : '' ?>>
+                <label class="form-check-label" for="wallet-payment">
+                    Mixue Wallet
+                    <?php if ($user_balance < $order['total']): ?>
+                        <span class="text-danger">- Insufficient balance</span>
+                    <?php endif; ?>
+                </label>
+            </div>
+        </div>
 
-            <button id="submit-button" class="btn btn-success w-100">
-                <div class="spinner-border spinner-border-sm" role="status" style="display: none;">
-                    <span class="visually-hidden">Loading...</span>
+        <div id="stripe-payment-container">
+            <form id="payment-form">
+                <div id="payment-element" class="mb-3">
+                    <!-- A Stripe Payment Element will be inserted here. -->
                 </div>
-                <span class="button-text">Pay Now</span>
-            </button>
-        </form>
+
+                <button id="submit-button" class="btn btn-success w-100">
+                    <div class="spinner-border spinner-border-sm" role="status" style="display: none;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="button-text">Pay Now</span>
+                </button>
+            </form>
+        </div>
+
+        <div id="wallet-payment-container" style="display: none;">
+            <form id="wallet-form">
+                <button id="wallet-submit-button" class="btn btn-primary w-100">Pay with Mixue Wallet</button>
+            </form>
+        </div>
     </div>
 
     <div class="text-center mt-4">
@@ -75,6 +102,26 @@ require_once __DIR__ . '/../../includes/header.php';
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', async () => {
+        // Payment method selection
+        const stripePaymentRadio = document.getElementById('stripe-payment');
+        const walletPaymentRadio = document.getElementById('wallet-payment');
+        const stripePaymentContainer = document.getElementById('stripe-payment-container');
+        const walletPaymentContainer = document.getElementById('wallet-payment-container');
+
+        stripePaymentRadio.addEventListener('change', () => {
+            if (stripePaymentRadio.checked) {
+                stripePaymentContainer.style.display = 'block';
+                walletPaymentContainer.style.display = 'none';
+            }
+        });
+
+        walletPaymentRadio.addEventListener('change', () => {
+            if (walletPaymentRadio.checked) {
+                stripePaymentContainer.style.display = 'none';
+                walletPaymentContainer.style.display = 'block';
+            }
+        });
+        
         const stripe = Stripe('<?= STRIPE_PUBLISHABLE_KEY ?>');
         let elements;
 
@@ -133,7 +180,37 @@ require_once __DIR__ . '/../../includes/header.php';
         initialize();
         form.addEventListener('submit', handleSubmit);
 
-        // Fetches a payment intent and captures the client secret
+        const walletForm = document.getElementById('wallet-form');
+        walletForm.addEventListener('submit', handleWalletSubmit);
+
+        async function handleWalletSubmit(e) {
+            e.preventDefault();
+            setLoading(true);
+
+            const successModal = new bootstrap.Modal(document.getElementById('paymentSuccessModal'));
+            const failureModal = new bootstrap.Modal(document.getElementById('paymentFailureModal'));
+            const failureMessageElement = document.getElementById('failure-message');
+
+            try {
+                const response = await fetch('<?= BASE_URL ?>/routes/payment.php?method=wallet', {
+                    method: 'POST',
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    successModal.show();
+                    fetch('<?= BASE_URL ?>/api/clear_cart.php');
+                } else {
+                    failureMessageElement.textContent = result.error;
+                    failureModal.show();
+                }
+            } catch (error) {
+                failureMessageElement.textContent = 'An unexpected error occurred.';
+                failureModal.show();
+            }
+
+            setLoading(false);
+        }
         async function initialize() {
             // Step 1: Create a pending order on your server
             const orderResponse = await fetch('<?= BASE_URL ?>/routes/payment.php', {
